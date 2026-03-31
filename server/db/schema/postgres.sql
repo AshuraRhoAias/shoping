@@ -126,6 +126,75 @@ CREATE INDEX IF NOT EXISTS idx_audit_user      ON audit_log(user_id);
 CREATE INDEX IF NOT EXISTS idx_audit_action    ON audit_log(action);
 CREATE INDEX IF NOT EXISTS idx_audit_created   ON audit_log(created_at DESC);
 
+-- ── POS: productos con campos extra (emoji, imagen base64) ──────────────────
+ALTER TABLE products ADD COLUMN IF NOT EXISTS emoji         VARCHAR(10);
+ALTER TABLE products ADD COLUMN IF NOT EXISTS image_base64  TEXT;
+
+-- ── POS: ventas ───────────────────────────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS pos_sales (
+  id              UUID           PRIMARY KEY DEFAULT gen_random_uuid(),
+  total           NUMERIC(14,2)  NOT NULL DEFAULT 0,
+  payment_method  VARCHAR(40),
+  operator_id     UUID,
+  created_at      TIMESTAMPTZ    NOT NULL DEFAULT NOW()
+);
+CREATE TABLE IF NOT EXISTS pos_sale_items (
+  id          UUID           PRIMARY KEY DEFAULT gen_random_uuid(),
+  pos_sale_id UUID           NOT NULL REFERENCES pos_sales(id) ON DELETE CASCADE,
+  product_id  UUID           NOT NULL REFERENCES products(id)  ON DELETE RESTRICT,
+  qty         INTEGER        NOT NULL DEFAULT 1,
+  price       NUMERIC(14,2)  NOT NULL DEFAULT 0
+);
+CREATE INDEX IF NOT EXISTS idx_pos_sale_items_sale ON pos_sale_items(pos_sale_id);
+
+-- ── POS: tickets (comandas guardadas) ────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS pos_tickets (
+  id              UUID           PRIMARY KEY DEFAULT gen_random_uuid(),
+  total           NUMERIC(14,2)  NOT NULL DEFAULT 0,
+  client          VARCHAR(120),
+  location        VARCHAR(80),
+  note            TEXT,
+  saved_by        VARCHAR(80),
+  paid            BOOLEAN        NOT NULL DEFAULT FALSE,
+  payment_method  VARCHAR(40),
+  charged_by      VARCHAR(80),
+  charged_at      TIMESTAMPTZ,
+  created_at      TIMESTAMPTZ    NOT NULL DEFAULT NOW()
+);
+CREATE TABLE IF NOT EXISTS pos_ticket_items (
+  id             UUID           PRIMARY KEY DEFAULT gen_random_uuid(),
+  pos_ticket_id  UUID           NOT NULL REFERENCES pos_tickets(id) ON DELETE CASCADE,
+  product_id     UUID           NOT NULL REFERENCES products(id)    ON DELETE RESTRICT,
+  qty            INTEGER        NOT NULL DEFAULT 1,
+  price          NUMERIC(14,2)  NOT NULL DEFAULT 0
+);
+CREATE INDEX IF NOT EXISTS idx_pos_ticket_items_ticket ON pos_ticket_items(pos_ticket_id);
+
+-- ── POS: deudores ────────────────────────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS pos_debtors (
+  id           UUID           PRIMARY KEY DEFAULT gen_random_uuid(),
+  name         VARCHAR(120)   NOT NULL,
+  phone        VARCHAR(30),
+  concept      TEXT,
+  total_debt   NUMERIC(14,2)  NOT NULL DEFAULT 0,
+  paid         NUMERIC(14,2)  NOT NULL DEFAULT 0,
+  pending      NUMERIC(14,2)  NOT NULL DEFAULT 0,
+  status       VARCHAR(30)    NOT NULL DEFAULT 'Al Día',
+  days_overdue INTEGER        NOT NULL DEFAULT 0,
+  created_at   TIMESTAMPTZ    NOT NULL DEFAULT NOW()
+);
+
+-- ── POS: gastos ───────────────────────────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS pos_expenses (
+  id          UUID           PRIMARY KEY DEFAULT gen_random_uuid(),
+  description TEXT           NOT NULL,
+  amount      NUMERIC(14,2)  NOT NULL DEFAULT 0,
+  category    VARCHAR(80),
+  note        TEXT,
+  operator_id UUID,
+  created_at  TIMESTAMPTZ    NOT NULL DEFAULT NOW()
+);
+
 -- ── Trigger: updated_at automático ───────────────────────────────────────────
 CREATE OR REPLACE FUNCTION set_updated_at()
 RETURNS TRIGGER LANGUAGE plpgsql AS $$

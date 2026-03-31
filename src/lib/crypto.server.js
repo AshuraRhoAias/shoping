@@ -19,10 +19,8 @@ import {
   randomBytes,
   createCipheriv,
   createDecipheriv,
-  // FIX: usamos timingSafeEqual nativo de Node en lugar de la implementación
-  // manual. La versión manual era correcta, pero esta es más robusta y auditada.
   timingSafeEqual as nodeTimingSafeEqual,
-} from "crypto";
+} from "node:crypto";
 
 // ─── Constantes ───────────────────────────────────────────────────────────────
 const CURVE = "prime256v1"; // P-256 ≡ secp256r1

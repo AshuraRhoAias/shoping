@@ -12,22 +12,17 @@
  */
 
 import { NextResponse } from 'next/server';
+import { decrypt }      from '@/lib/multiLayerCrypto';
 
 const FASTIFY_BASE = process.env.FASTIFY_URL || 'http://localhost:4000';
 
 // ── Server-side decryption (keys stay on the server) ─────────────────────────
-// Dynamically require the crypto util only on the server.
 async function serverDecrypt(body) {
   if (!body?.encrypted || !body?.payload) return body;
-
-  // Use Node.js crypto – safe because this runs only in the Node runtime.
-  const { decrypt } = await import('../../../../server/utils/crypto.js').catch(() => null) ?? {};
-  if (!decrypt) return body; // crypto module unavailable in Edge runtime
-
   try {
     return { decrypted: true, data: decrypt(body.payload, body.level || 'public') };
   } catch {
-    return body; // return raw if decryption fails (caller handles it)
+    return body; // devuelve raw si el descifrado falla (ej. sin MASTER_SECRET)
   }
 }
 
