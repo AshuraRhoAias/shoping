@@ -124,3 +124,79 @@ CREATE TABLE IF NOT EXISTS audit_log (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 SET FOREIGN_KEY_CHECKS = 1;
+
+-- ── POS: productos campos extra ───────────────────────────────────────────────
+ALTER TABLE products ADD COLUMN IF NOT EXISTS emoji         VARCHAR(10);
+ALTER TABLE products ADD COLUMN IF NOT EXISTS image_base64  MEDIUMTEXT;
+
+-- ── POS: ventas ───────────────────────────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS pos_sales (
+  id              CHAR(36)      PRIMARY KEY DEFAULT (UUID()),
+  total           DECIMAL(14,2) NOT NULL DEFAULT 0.00,
+  payment_method  VARCHAR(40),
+  operator_id     CHAR(36),
+  created_at      DATETIME(3)   NOT NULL DEFAULT CURRENT_TIMESTAMP(3)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+CREATE TABLE IF NOT EXISTS pos_sale_items (
+  id           CHAR(36)      PRIMARY KEY DEFAULT (UUID()),
+  pos_sale_id  CHAR(36)      NOT NULL,
+  product_id   CHAR(36)      NOT NULL,
+  qty          INT           NOT NULL DEFAULT 1,
+  price        DECIMAL(14,2) NOT NULL DEFAULT 0.00,
+  KEY idx_psi_sale (pos_sale_id),
+  CONSTRAINT fk_psi_sale    FOREIGN KEY (pos_sale_id) REFERENCES pos_sales(id)  ON DELETE CASCADE,
+  CONSTRAINT fk_psi_product FOREIGN KEY (product_id)  REFERENCES products(id)   ON DELETE RESTRICT
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- ── POS: tickets (comandas) ───────────────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS pos_tickets (
+  id              CHAR(36)      PRIMARY KEY DEFAULT (UUID()),
+  total           DECIMAL(14,2) NOT NULL DEFAULT 0.00,
+  client          VARCHAR(120),
+  location        VARCHAR(80),
+  note            TEXT,
+  saved_by        VARCHAR(80),
+  paid            TINYINT(1)    NOT NULL DEFAULT 0,
+  payment_method  VARCHAR(40),
+  charged_by      VARCHAR(80),
+  charged_at      DATETIME(3),
+  created_at      DATETIME(3)   NOT NULL DEFAULT CURRENT_TIMESTAMP(3)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+CREATE TABLE IF NOT EXISTS pos_ticket_items (
+  id             CHAR(36)      PRIMARY KEY DEFAULT (UUID()),
+  pos_ticket_id  CHAR(36)      NOT NULL,
+  product_id     CHAR(36)      NOT NULL,
+  qty            INT           NOT NULL DEFAULT 1,
+  price          DECIMAL(14,2) NOT NULL DEFAULT 0.00,
+  KEY idx_pti_ticket (pos_ticket_id),
+  CONSTRAINT fk_pti_ticket  FOREIGN KEY (pos_ticket_id) REFERENCES pos_tickets(id) ON DELETE CASCADE,
+  CONSTRAINT fk_pti_product FOREIGN KEY (product_id)    REFERENCES products(id)    ON DELETE RESTRICT
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- ── POS: deudores ─────────────────────────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS pos_debtors (
+  id           CHAR(36)      PRIMARY KEY DEFAULT (UUID()),
+  name         VARCHAR(120)  NOT NULL,
+  phone        VARCHAR(30),
+  concept      TEXT,
+  total_debt   DECIMAL(14,2) NOT NULL DEFAULT 0.00,
+  paid         DECIMAL(14,2) NOT NULL DEFAULT 0.00,
+  pending      DECIMAL(14,2) NOT NULL DEFAULT 0.00,
+  status       VARCHAR(30)   NOT NULL DEFAULT 'Al Día',
+  days_overdue INT           NOT NULL DEFAULT 0,
+  created_at   DATETIME(3)   NOT NULL DEFAULT CURRENT_TIMESTAMP(3)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- ── POS: gastos ───────────────────────────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS pos_expenses (
+  id          CHAR(36)      PRIMARY KEY DEFAULT (UUID()),
+  description TEXT          NOT NULL,
+  amount      DECIMAL(14,2) NOT NULL DEFAULT 0.00,
+  category    VARCHAR(80),
+  note        TEXT,
+  operator_id CHAR(36),
+  created_at  DATETIME(3)   NOT NULL DEFAULT CURRENT_TIMESTAMP(3)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
