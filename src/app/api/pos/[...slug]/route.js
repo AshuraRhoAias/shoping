@@ -39,12 +39,21 @@
  * ─────────────────────────────────────────────────────────────────────────────
  */
 
+<<<<<<< HEAD
 import { NextResponse }           from "next/server";
 import { secureRoute }            from "@/lib/secureRoute";
 import { destroySession,
          encryptServerPayload }   from "@/lib/crypto.server";
 import { rateLimit }              from "@/lib/rateLimit";
 import { db }                     from "@/lib/db";
+=======
+import { NextResponse } from "next/server";
+import { secureRoute } from "@/lib/secureRoute";
+import { destroySession } from "@/lib/crypto.server";
+import { rateLimit } from "@/lib/rateLimit";
+import { db } from "@/lib/db";
+import { encryptedResponse } from "@/lib/Helpers";
+>>>>>>> e651d92 (help)
 
 export const runtime = "nodejs";
 
@@ -324,6 +333,7 @@ export const DELETE = secureRoute(async (body, sessionId, request) => {
   }
   throw Object.assign(new Error("Not found"), { status: 404 });
 });
+<<<<<<< HEAD
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -382,3 +392,5 @@ async function buildSummary(period) {
     debtors:      debtors._count,
   };
 }
+=======
+>>>>>>> e651d92 (help)
