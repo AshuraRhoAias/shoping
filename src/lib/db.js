@@ -98,7 +98,10 @@ function buildOrder(orderBy) {
   if (!orderBy) return "";
   const parts = [];
   for (const [k, dir] of Object.entries(orderBy)) {
-    parts.push(`${toSnake(k)} ${dir === "desc" ? "DESC" : "ASC"}`);
+    const col = toSnake(k);
+    // Whitelist: only alphanumeric and underscores allowed in column names
+    if (!/^[a-z_][a-z0-9_]*$/.test(col)) throw new Error(`Invalid column name: ${col}`);
+    parts.push(`${col} ${dir === "desc" ? "DESC" : "ASC"}`);
   }
   return parts.length ? "ORDER BY " + parts.join(", ") : "";
 }
