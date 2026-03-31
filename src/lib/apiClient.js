@@ -9,7 +9,7 @@
  * Browser components call /api/proxy/* which decrypts + re-serialises.
  */
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000';
+const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:4000';
 
 class ApiError extends Error {
   constructor(status, message, body) {
