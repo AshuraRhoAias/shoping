@@ -140,9 +140,7 @@ export async function GET(request, { params }) {
 // ═══════════════════════════════════════════════════════════════════════════════
 export const POST = secureRoute(async (body, sessionId, request) => {
   await checkRate(request, 120);
-  const slug = parsePath(request.nextUrl ? (await request.json?.(), []) : []);
 
-  // Re-parse slug from URL since secureRoute already consumed the body
   const urlParts = new URL(request.url).pathname
     .replace(/^\/api\/pos\//, "")
     .split("/")
