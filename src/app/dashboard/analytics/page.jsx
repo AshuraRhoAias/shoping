@@ -7,7 +7,7 @@ import { cookies } from 'next/headers';
 
 async function fetchAnalytics(token) {
   const base = process.env.NEXTJS_INTERNAL_URL || 'http://localhost:3000';
-  const h    = { Authorization: `Bearer ${token}`, cache: 'no-store' };
+  const h    = { Authorization: `Bearer ${token}` };
 
   const [overviewRes, branchesRes, productsRes] = await Promise.allSettled([
     fetch(`${base}/api/proxy/v1/analytics/overview`,  { headers: h, cache: 'no-store' }),

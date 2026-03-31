@@ -45,7 +45,7 @@ import { secureRoute } from "@/lib/secureRoute";
 import { destroySession } from "@/lib/crypto.server";
 import { rateLimit } from "@/lib/rateLimit";
 import { db } from "@/lib/db";
-import { encryptedResponse } from "@/lib/Helpers";
+import { encryptedResponse, err, handleError, hashPassword, verifyPassword } from "@/lib/Helpers";
 
 export const runtime = "nodejs";
 
@@ -323,39 +323,9 @@ export const DELETE = secureRoute(async (body, sessionId, request) => {
   }
   throw Object.assign(new Error("Not found"), { status: 404 });
 });
-<<<<<<< HEAD
 
-// ─── Helpers ──────────────────────────────────────────────────────────────────
+// ─── Report aggregation ───────────────────────────────────────────────────────
 
-function encryptedResponse(data, sessionId) {
-  const envelope = encryptServerPayload(data, sessionId);
-  return NextResponse.json(envelope, { status: 200, headers: {
-    "Cache-Control": "no-store",
-    "X-Content-Type-Options": "nosniff",
-  }});
-}
-
-function err(status, message) {
-  return NextResponse.json({ error: message }, { status });
-}
-
-function handleError(e) {
-  if (e.status) return err(e.status, e.message);
-  console.error(e);
-  return err(500, "Internal error");
-}
-
-// Password utilities (use bcrypt or argon2 in production)
-async function hashPassword(plain) {
-  const { hash } = await import("bcryptjs");
-  return hash(plain, 12);
-}
-async function verifyPassword(plain, hashed) {
-  const { compare } = await import("bcryptjs");
-  return compare(plain, hashed);
-}
-
-// Report aggregation stub
 async function buildSummary(period) {
   const now   = new Date();
   const start = period === "today"
@@ -382,5 +352,3 @@ async function buildSummary(period) {
     debtors:      debtors._count,
   };
 }
-=======
->>>>>>> e651d92 (help)

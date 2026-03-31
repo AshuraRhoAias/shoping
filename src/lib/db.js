@@ -98,7 +98,10 @@ function buildOrder(orderBy) {
   if (!orderBy) return "";
   const parts = [];
   for (const [k, dir] of Object.entries(orderBy)) {
-    parts.push(`${toSnake(k)} ${dir === "desc" ? "DESC" : "ASC"}`);
+    const col = toSnake(k);
+    // Whitelist: only alphanumeric and underscores allowed in column names
+    if (!/^[a-z_][a-z0-9_]*$/.test(col)) throw new Error(`Invalid column name: ${col}`);
+    parts.push(`${col} ${dir === "desc" ? "DESC" : "ASC"}`);
   }
   return parts.length ? "ORDER BY " + parts.join(", ") : "";
 }
@@ -205,6 +208,41 @@ function makeModel(tableName) {
       const { clause, vals } = buildWhere(where);
       await pool.query(`DELETE FROM ${tableName} ${clause}`, vals);
       return { ok: true };
+    },
+
+    async aggregate({ where, _sum, _count } = {}) {
+      const pool = getPool();
+      const { clause, vals } = where ? buildWhere(where) : { clause: "", vals: [] };
+
+      const selectParts = [];
+      if (_count === true) selectParts.push("COUNT(*) AS _count");
+      if (_sum && typeof _sum === "object") {
+        for (const field of Object.keys(_sum)) {
+          selectParts.push(`SUM(${toSnake(field)}) AS _sum_${toSnake(field)}`);
+        }
+      }
+      if (selectParts.length === 0) selectParts.push("COUNT(*) AS _count");
+
+      const { rows } = await pool.query(
+        `SELECT ${selectParts.join(", ")} FROM ${tableName} ${clause}`.trim(),
+        vals,
+      );
+
+      const row = rows[0] || {};
+      const result = {};
+
+      if (_count === true) {
+        result._count = Number(row._count ?? row["count(*)"] ?? 0);
+      }
+      if (_sum && typeof _sum === "object") {
+        result._sum = {};
+        for (const field of Object.keys(_sum)) {
+          const col = `_sum_${toSnake(field)}`;
+          result._sum[field] = row[col] != null ? Number(row[col]) : null;
+        }
+      }
+
+      return result;
     },
   };
 }
