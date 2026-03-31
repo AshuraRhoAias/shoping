@@ -1,39 +1,12 @@
 'use strict';
 
-const crypto = require('node:crypto');
+const crypto       = require('node:crypto');
+const branchesRepo = require('../db/repo/branches');
 
-/**
- * Branch management routes.
- * Each branch can be a physical store, warehouse, or sub-franchise.
- *
- * GET    /api/v1/branches              – list branches
- * POST   /api/v1/branches              – create branch (admin)
- * GET    /api/v1/branches/:id          – branch detail
- * PATCH  /api/v1/branches/:id          – update branch (admin)
- * DELETE /api/v1/branches/:id          – deactivate branch (superadmin)
- * GET    /api/v1/branches/:id/stats    – branch KPIs
- * GET    /api/v1/branches/:id/inventory – branch inventory
- * POST   /api/v1/branches/:id/sync     – force data sync from branch
- * GET    /api/v1/branches/all/summary  – aggregate view of ALL branches
- */
 async function branchRoutes(fastify) {
-  const ENC_LEVEL = 'admin'; // branch data is privileged
+  const ENC = 'admin';
 
-  // In-memory store (replace with DB)
-  const branches = new Map();
-
-  // Seed a demo branch
-  branches.set('main', {
-    id: 'main',
-    name: 'Main Store',
-    address: '123 Main St',
-    phone: '+1-555-0100',
-    timezone: 'America/Mexico_City',
-    active: true,
-    createdAt: new Date().toISOString(),
-  });
-
-  // ── List all branches ────────────────────────────────────────────────────────
+  // ── GET / ────────────────────────────────────────────────────────────────────
   fastify.get('/', {
     preHandler: [fastify.authenticate],
     schema: {
@@ -47,42 +20,36 @@ async function branchRoutes(fastify) {
       },
     },
   }, async (request, reply) => {
-    const { active, page = 1, limit = 50 } = request.query;
-    let list = [...branches.values()];
-    if (active !== undefined) list = list.filter(b => b.active === active);
-    const start = (page - 1) * limit;
-    const slice = list.slice(start, start + limit);
-    reply.header('X-Total-Count', String(list.length));
-    return reply.sendEncrypted({ branches: slice, total: list.length, page, limit }, ENC_LEVEL);
+    const { active, page, limit } = request.query;
+    const result = await branchesRepo.list(fastify.db, { active, page, limit });
+    reply.header('X-Total-Count', String(result.total));
+    return reply.sendEncrypted({ ...result, page, limit }, ENC);
   });
 
-  // ── Aggregate all-branches summary ───────────────────────────────────────────
+  // ── GET /all/summary ─────────────────────────────────────────────────────────
   fastify.get('/all/summary', {
-    preHandler: [fastify.requireRole('admin', 'superadmin')],
+    preHandler: [fastify.requireRole('admin','superadmin')],
   }, async (_request, reply) => {
-    const summary = [...branches.values()].map(b => ({
-      id: b.id,
-      name: b.name,
-      active: b.active,
-      // In production: join with real-time KPI data per branch
-      revenue: 0,
-      orders:  0,
-      stock:   0,
-    }));
+    const summary = await branchesRepo.summary(fastify.db);
+    const totals  = summary.reduce((acc, b) => {
+      acc.revenue   += b.revenue;
+      acc.orders    += b.orders;
+      return acc;
+    }, { revenue: 0, orders: 0 });
     return reply.sendEncrypted({
       summary,
-      totals: { revenue: 0, orders: 0, branches: branches.size },
+      totals: { ...totals, branches: summary.length },
       generatedAt: new Date().toISOString(),
-    }, ENC_LEVEL);
+    }, ENC);
   });
 
-  // ── Create branch ────────────────────────────────────────────────────────────
+  // ── POST / ───────────────────────────────────────────────────────────────────
   fastify.post('/', {
-    preHandler: [fastify.requireRole('admin', 'superadmin')],
+    preHandler: [fastify.requireRole('admin','superadmin')],
     schema: {
       body: {
         type: 'object',
-        required: ['name', 'address'],
+        required: ['name'],
         properties: {
           name:     { type: 'string', minLength: 2, maxLength: 120 },
           address:  { type: 'string' },
@@ -94,44 +61,29 @@ async function branchRoutes(fastify) {
       },
     },
   }, async (request, reply) => {
-    const id     = crypto.randomUUID();
-    const branch = { id, ...request.body, createdAt: new Date().toISOString() };
-    branches.set(id, branch);
-    return reply.code(201).sendEncrypted({ branch }, ENC_LEVEL);
+    const branch = await branchesRepo.create(fastify.db, request.body);
+    return reply.code(201).sendEncrypted({ branch }, ENC);
   });
 
-  // ── Get branch ───────────────────────────────────────────────────────────────
+  // ── GET /:id ──────────────────────────────────────────────────────────────────
   fastify.get('/:id', {
     preHandler: [fastify.authenticate],
-    schema: {
-      params: {
-        type: 'object',
-        required: ['id'],
-        properties: { id: { type: 'string' } },
-      },
-    },
+    schema: { params: { type: 'object', required: ['id'], properties: { id: { type: 'string' } } } },
   }, async (request, reply) => {
-    const branch = branches.get(request.params.id);
-    if (!branch) return reply.code(404).send({ error: 'Not Found', message: 'Branch not found' });
-
-    // Sellers can only see their own branch
     const u = request.user;
     if (u.role === 'seller' && u.branchId !== request.params.id) {
       return reply.code(403).send({ error: 'Forbidden' });
     }
-
-    return reply.sendEncrypted({ branch }, ENC_LEVEL);
+    const branch = await branchesRepo.findById(fastify.db, request.params.id);
+    if (!branch) return reply.code(404).send({ error: 'Not Found' });
+    return reply.sendEncrypted({ branch }, ENC);
   });
 
-  // ── Update branch ─────────────────────────────────────────────────────────────
+  // ── PATCH /:id ────────────────────────────────────────────────────────────────
   fastify.patch('/:id', {
-    preHandler: [fastify.requireRole('admin', 'superadmin', 'seller')],
+    preHandler: [fastify.requireRole('admin','superadmin','seller')],
     schema: {
-      params: {
-        type: 'object',
-        required: ['id'],
-        properties: { id: { type: 'string' } },
-      },
+      params: { type: 'object', required: ['id'], properties: { id: { type: 'string' } } },
       body: {
         type: 'object',
         properties: {
@@ -146,111 +98,82 @@ async function branchRoutes(fastify) {
       },
     },
   }, async (request, reply) => {
-    const branch = branches.get(request.params.id);
-    if (!branch) return reply.code(404).send({ error: 'Not Found' });
-
     const u = request.user;
     if (u.role === 'seller' && u.branchId !== request.params.id) {
       return reply.code(403).send({ error: 'Forbidden' });
     }
-
-    Object.assign(branch, request.body, { updatedAt: new Date().toISOString() });
-    return reply.sendEncrypted({ branch }, ENC_LEVEL);
+    const branch = await branchesRepo.update(fastify.db, request.params.id, request.body);
+    if (!branch) return reply.code(404).send({ error: 'Not Found' });
+    return reply.sendEncrypted({ branch }, ENC);
   });
 
-  // ── Delete / deactivate branch ───────────────────────────────────────────────
+  // ── DELETE /:id ───────────────────────────────────────────────────────────────
   fastify.delete('/:id', {
     preHandler: [fastify.requireRole('superadmin')],
-    schema: {
-      params: {
-        type: 'object',
-        required: ['id'],
-        properties: { id: { type: 'string' } },
-      },
-    },
+    schema: { params: { type: 'object', required: ['id'], properties: { id: { type: 'string' } } } },
   }, async (request, reply) => {
-    const branch = branches.get(request.params.id);
-    if (!branch) return reply.code(404).send({ error: 'Not Found' });
-    branch.active = false;
-    branch.deactivatedAt = new Date().toISOString();
-    return reply.send({ message: 'Branch deactivated', id: request.params.id });
+    await branchesRepo.deactivate(fastify.db, request.params.id);
+    return reply.send({ message: 'Sucursal desactivada', id: request.params.id });
   });
 
-  // ── Branch stats (KPIs) ──────────────────────────────────────────────────────
+  // ── GET /:id/stats ────────────────────────────────────────────────────────────
   fastify.get('/:id/stats', {
     preHandler: [fastify.authenticate],
-    schema: {
-      params: {
-        type: 'object',
-        required: ['id'],
-        properties: { id: { type: 'string' } },
-      },
-      querystring: {
-        type: 'object',
-        properties: {
-          from: { type: 'string', format: 'date-time' },
-          to:   { type: 'string', format: 'date-time' },
-        },
-      },
-    },
+    schema: { params: { type: 'object', required: ['id'], properties: { id: { type: 'string' } } } },
   }, async (request, reply) => {
-    const branch = branches.get(request.params.id);
+    const branch = await branchesRepo.findById(fastify.db, request.params.id);
     if (!branch) return reply.code(404).send({ error: 'Not Found' });
-
-    // Placeholder – query aggregated stats from DB
+    // Agregación básica de la sucursal
+    const { rows } = await fastify.db.query(
+      `SELECT
+         COALESCE(SUM(o.total),0)::FLOAT   AS revenue,
+         COUNT(o.id)                        AS orders,
+         COALESCE(AVG(o.total),0)::FLOAT   AS avg_order_value
+       FROM orders o
+       WHERE o.branch_id = $1`,
+      [request.params.id],
+    );
     const stats = {
-      branchId:       request.params.id,
-      revenue:        0,
-      orders:         0,
-      avgOrderValue:  0,
-      topProducts:    [],
-      stockAlerts:    [],
-      generatedAt:    new Date().toISOString(),
+      branchId:      request.params.id,
+      revenue:       Number(rows[0]?.revenue       || 0),
+      orders:        Number(rows[0]?.orders        || 0),
+      avgOrderValue: Number(rows[0]?.avg_order_value || 0),
+      generatedAt:   new Date().toISOString(),
     };
-    return reply.sendEncrypted({ stats }, ENC_LEVEL);
+    return reply.sendEncrypted({ stats }, ENC);
   });
 
-  // ── Branch inventory ──────────────────────────────────────────────────────────
+  // ── GET /:id/inventory ────────────────────────────────────────────────────────
   fastify.get('/:id/inventory', {
     preHandler: [fastify.authenticate],
     schema: {
-      params: {
-        type: 'object',
-        required: ['id'],
-        properties: { id: { type: 'string' } },
-      },
+      params: { type: 'object', required: ['id'], properties: { id: { type: 'string' } } },
       querystring: {
         type: 'object',
         properties: {
-          page:    { type: 'integer', minimum: 1, default: 1 },
-          limit:   { type: 'integer', minimum: 1, maximum: 500, default: 100 },
-          lowStock:{ type: 'boolean' },
+          page:     { type: 'integer', minimum: 1, default: 1 },
+          limit:    { type: 'integer', minimum: 1, maximum: 500, default: 100 },
+          lowStock: { type: 'boolean' },
         },
       },
     },
   }, async (request, reply) => {
-    const { page = 1, limit = 100 } = request.query;
-    // Placeholder
-    return reply.sendEncrypted({ inventory: [], total: 0, page, limit }, ENC_LEVEL);
+    const { page, limit, lowStock } = request.query;
+    const result = await branchesRepo.inventory(fastify.db, request.params.id, { page, limit, lowStock });
+    reply.header('X-Total-Count', String(result.total));
+    return reply.sendEncrypted({ ...result, page, limit }, ENC);
   });
 
-  // ── Force sync from branch ────────────────────────────────────────────────────
+  // ── POST /:id/sync ────────────────────────────────────────────────────────────
   fastify.post('/:id/sync', {
-    preHandler: [fastify.requireRole('admin', 'superadmin')],
-    schema: {
-      params: {
-        type: 'object',
-        required: ['id'],
-        properties: { id: { type: 'string' } },
-      },
-    },
+    preHandler: [fastify.requireRole('admin','superadmin')],
+    schema: { params: { type: 'object', required: ['id'], properties: { id: { type: 'string' } } } },
   }, async (request, reply) => {
-    // Placeholder – trigger a background sync job (queue, webhook, etc.)
     return reply.code(202).send({
-      message:   'Sync triggered',
-      branchId:  request.params.id,
-      syncId:    crypto.randomUUID(),
-      queuedAt:  new Date().toISOString(),
+      message:  'Sincronización en cola',
+      branchId: request.params.id,
+      syncId:   crypto.randomUUID(),
+      queuedAt: new Date().toISOString(),
     });
   });
 }

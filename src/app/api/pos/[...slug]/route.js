@@ -39,11 +39,12 @@
  * ─────────────────────────────────────────────────────────────────────────────
  */
 
-import { NextResponse }  from "next/server";
-import { secureRoute }   from "@/lib/secureRoute";
-import { destroySession } from "@/lib/crypto.server";
-import { rateLimit }     from "@/lib/rateLimit";
-import { db }            from "@/lib/db"; // your Prisma/Drizzle/Supabase client
+import { NextResponse }           from "next/server";
+import { secureRoute }            from "@/lib/secureRoute";
+import { destroySession,
+         encryptServerPayload }   from "@/lib/crypto.server";
+import { rateLimit }              from "@/lib/rateLimit";
+import { db }                     from "@/lib/db";
 
 export const runtime = "nodejs";
 
@@ -325,9 +326,6 @@ export const DELETE = secureRoute(async (body, sessionId, request) => {
 });
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
-
-import { encryptServerPayload } from "@/lib/crypto.server";
-import { NextResponse }         from "next/server";
 
 function encryptedResponse(data, sessionId) {
   const envelope = encryptServerPayload(data, sessionId);

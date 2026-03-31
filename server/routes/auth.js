@@ -1,32 +1,8 @@
 'use strict';
 
-const crypto = require('node:crypto');
+const usersRepo = require('../db/repo/users');
 
-/**
- * POST /api/v1/auth/register   – create account (public level enc)
- * POST /api/v1/auth/login      – get access + refresh tokens
- * POST /api/v1/auth/refresh    – exchange refresh token
- * POST /api/v1/auth/logout     – revoke refresh token (blacklist in production)
- * GET  /api/v1/auth/me         – current user info
- */
 async function authRoutes(fastify) {
-  // ── In-memory user store (replace with DB in production) ────────────────────
-  // Shape: Map<id, { id, name, email, passwordHash, role, branchId, createdAt }>
-  const users = new Map();
-
-  // ── Helpers ─────────────────────────────────────────────────────────────────
-  function hashPassword(password) {
-    const salt = crypto.randomBytes(32).toString('hex');
-    const hash = crypto.scryptSync(password, salt, 64).toString('hex');
-    return `${salt}:${hash}`;
-  }
-
-  function verifyPassword(password, stored) {
-    const [salt, hash] = stored.split(':');
-    const derived = crypto.scryptSync(password, salt, 64).toString('hex');
-    return crypto.timingSafeEqual(Buffer.from(hash, 'hex'), Buffer.from(derived, 'hex'));
-  }
-
   function encLevelForRole(role) {
     return ['admin', 'superadmin', 'seller'].includes(role) ? 'admin' : 'user';
   }
@@ -49,29 +25,15 @@ async function authRoutes(fastify) {
     },
   }, async (request, reply) => {
     const { name, email, password, role = 'user', branchId } = request.body;
+    const db = fastify.db;
 
-    // Check duplicate
-    for (const u of users.values()) {
-      if (u.email === email) {
-        return reply.code(409).send({ error: 'Conflict', message: 'Email already registered' });
-      }
+    const existing = await usersRepo.findByEmail(db, email);
+    if (existing) {
+      return reply.code(409).send({ error: 'Conflict', message: 'Email ya registrado' });
     }
 
-    const id = crypto.randomUUID();
-    const user = {
-      id,
-      name,
-      email,
-      passwordHash: hashPassword(password),
-      role,
-      branchId: branchId || null,
-      createdAt: new Date().toISOString(),
-    };
-    users.set(id, user);
-
-    const level = encLevelForRole(role);
-    const { passwordHash: _ph, ...safeUser } = user;
-    return reply.code(201).sendEncrypted({ user: safeUser }, level);
+    const user = await usersRepo.create(db, { name, email, password, role, branchId });
+    return reply.code(201).sendEncrypted({ user }, encLevelForRole(role));
   });
 
   // ── POST /login ──────────────────────────────────────────────────────────────
@@ -89,26 +51,23 @@ async function authRoutes(fastify) {
     },
   }, async (request, reply) => {
     const { email, password } = request.body;
+    const db = fastify.db;
 
-    let found;
-    for (const u of users.values()) {
-      if (u.email === email) { found = u; break; }
-    }
+    const found = await usersRepo.findByEmail(db, email);
 
-    if (!found || !verifyPassword(password, found.passwordHash)) {
-      // Delay to prevent timing-based user enumeration
+    if (!found || !usersRepo.verifyPassword(password, found.password_hash)) {
       await new Promise(r => setTimeout(r, 200 + Math.random() * 100));
-      return reply.code(401).send({ error: 'Unauthorized', message: 'Invalid credentials' });
+      return reply.code(401).send({ error: 'Unauthorized', message: 'Credenciales inválidas' });
     }
 
-    const payload = { sub: found.id, role: found.role, branchId: found.branchId };
+    const payload = { sub: found.id, role: found.role, branchId: found.branch_id };
     const [accessToken, refreshToken] = await Promise.all([
       reply.accessSign(payload),
       reply.refreshSign(payload),
     ]);
 
-    const level = encLevelForRole(found.role);
-    const { passwordHash: _ph, ...safeUser } = found;
+    const safeUser = usersRepo.toUser(found);
+    const level    = encLevelForRole(found.role);
     return reply.sendEncrypted({ accessToken, refreshToken, user: safeUser }, level);
   });
 
@@ -127,39 +86,34 @@ async function authRoutes(fastify) {
     try {
       decoded = fastify.jwt.refresh.verify(request.body.refreshToken);
     } catch {
-      return reply.code(401).send({ error: 'Unauthorized', message: 'Invalid refresh token' });
+      return reply.code(401).send({ error: 'Unauthorized', message: 'Refresh token inválido' });
     }
 
-    const user = users.get(decoded.sub);
-    if (!user) {
-      return reply.code(401).send({ error: 'Unauthorized', message: 'User not found' });
-    }
+    const found = await usersRepo.findById(fastify.db, decoded.sub);
+    if (!found) return reply.code(401).send({ error: 'Unauthorized', message: 'Usuario no encontrado' });
 
-    const payload = { sub: user.id, role: user.role, branchId: user.branchId };
-    const [accessToken, newRefreshToken] = await Promise.all([
+    const payload = { sub: found.id, role: found.role, branchId: found.branch_id };
+    const [accessToken, newRefresh] = await Promise.all([
       reply.accessSign(payload),
       reply.refreshSign(payload),
     ]);
-
-    return reply.sendEncrypted({ accessToken, refreshToken: newRefreshToken }, encLevelForRole(user.role));
+    return reply.sendEncrypted({ accessToken, refreshToken: newRefresh }, encLevelForRole(found.role));
   });
 
   // ── POST /logout ─────────────────────────────────────────────────────────────
   fastify.post('/logout', {
     preHandler: [fastify.authenticate],
   }, async (_request, reply) => {
-    // In production: add refresh token to a Redis blacklist with TTL = remaining expiry
-    return reply.send({ message: 'Logged out successfully' });
+    return reply.send({ message: 'Sesión cerrada' });
   });
 
   // ── GET /me ──────────────────────────────────────────────────────────────────
   fastify.get('/me', {
     preHandler: [fastify.authenticate],
   }, async (request, reply) => {
-    const user = users.get(request.user.sub);
-    if (!user) return reply.code(404).send({ error: 'Not Found' });
-    const { passwordHash: _ph, ...safeUser } = user;
-    return reply.sendEncrypted({ user: safeUser }, encLevelForRole(user.role));
+    const row = await usersRepo.findById(fastify.db, request.user.sub);
+    if (!row) return reply.code(404).send({ error: 'Not Found' });
+    return reply.sendEncrypted({ user: usersRepo.toUser(row) }, encLevelForRole(row.role));
   });
 }
 
