@@ -39,21 +39,13 @@
  * ─────────────────────────────────────────────────────────────────────────────
  */
 
-<<<<<<< HEAD
-import { NextResponse }           from "next/server";
-import { secureRoute }            from "@/lib/secureRoute";
-import { destroySession,
-         encryptServerPayload }   from "@/lib/crypto.server";
-import { rateLimit }              from "@/lib/rateLimit";
-import { db }                     from "@/lib/db";
-=======
+
 import { NextResponse } from "next/server";
 import { secureRoute } from "@/lib/secureRoute";
 import { destroySession } from "@/lib/crypto.server";
 import { rateLimit } from "@/lib/rateLimit";
 import { db } from "@/lib/db";
 import { encryptedResponse } from "@/lib/Helpers";
->>>>>>> e651d92 (help)
 
 export const runtime = "nodejs";
 
