@@ -1,13 +1,13 @@
-/**
- * Typed API client for communicating with the Fastify backend.
- *
- * All responses are wrapped in { encrypted, level, payload }.
- * This client decrypts them transparently.
- *
- * The decryption must happen server-side (via Next.js API routes)
- * because the master keys must NOT be shipped to the browser.
- * Browser components call /api/proxy/* which decrypts + re-serialises.
- */
+//*
+//  * Typed API client for communicating with the Fastify backend.
+//  *
+//  * All responses are wrapped in { encrypted, level, payload }.
+//  * This client decrypts them transparently.
+//  *
+//  * The decryption must happen server-side (via Next.js API routes)
+//  * because the master keys must NOT be shipped to the browser.
+//  * Browser components call /api/proxy/* which decrypts + re-serialises.
+//  */
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:4000';
 
