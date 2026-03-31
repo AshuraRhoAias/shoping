@@ -7,6 +7,7 @@ const helmet   = require('@fastify/helmet');
 const compress = require('@fastify/compress');
 
 // ── Plugins ───────────────────────────────────────────────────────────────────
+const dbPlugin         = require('./plugins/db');
 const corsPlugin       = require('./plugins/cors');
 const jwtPlugin        = require('./plugins/jwt');
 const encryptionPlugin = require('./plugins/encryption');
@@ -54,6 +55,7 @@ async function buildApp(opts = {}) {
   await app.register(compress, { global: true, threshold: 1024 });
 
   // ── Core plugins ────────────────────────────────────────────────────────────
+  await app.register(dbPlugin);
   await app.register(corsPlugin);
   await app.register(rateLimitPlugin);
   await app.register(jwtPlugin);
