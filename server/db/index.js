@@ -44,6 +44,29 @@ function getPool() {
         const [rows] = await pool.execute(finalSql, finalParams);
         return { rows: Array.isArray(rows) ? rows : [], rowCount: rows.affectedRows ?? rows.length };
       },
+      async transaction(fn) {
+        const conn = await pool.getConnection();
+        try {
+          await conn.beginTransaction();
+          const txDb = {
+            type: 'mysql',
+            async query(sql, params = []) {
+              const pgStyle = /\$\d+/.test(sql);
+              const finalSql = pgStyle ? sql.replace(/\$\d+/g, () => '?') : sql;
+              const [rows] = await conn.execute(finalSql, params || []);
+              return { rows: Array.isArray(rows) ? rows : [], rowCount: rows.affectedRows ?? rows.length };
+            },
+          };
+          const result = await fn(txDb);
+          await conn.commit();
+          return result;
+        } catch (err) {
+          await conn.rollback();
+          throw err;
+        } finally {
+          conn.release();
+        }
+      },
       async end() { await pool.end(); },
       type: 'mysql',
     };
@@ -57,6 +80,24 @@ function getPool() {
 
     _pool = {
       query:  (sql, params) => pool.query(sql, params),
+      async transaction(fn) {
+        const client = await pool.connect();
+        try {
+          await client.query('BEGIN');
+          const txDb = {
+            type: 'postgres',
+            query: (sql, params) => client.query(sql, params),
+          };
+          const result = await fn(txDb);
+          await client.query('COMMIT');
+          return result;
+        } catch (err) {
+          await client.query('ROLLBACK');
+          throw err;
+        } finally {
+          client.release();
+        }
+      },
       end:    ()            => pool.end(),
       type:   'postgres',
     };
