@@ -102,6 +102,10 @@ class MemorySessionStore {
 
 const sessionStore = new MemorySessionStore();
 
+// Purge expired sessions every 10 minutes to prevent unbounded memory growth.
+// unref() ensures this timer does not keep the Node.js process alive.
+setInterval(() => sessionStore.prune(), 10 * 60 * 1000).unref();
+
 // ─── HKDF (RFC 5869) ─────────────────────────────────────────────────────────
 
 function hkdfExpand(prk, info, length) {
