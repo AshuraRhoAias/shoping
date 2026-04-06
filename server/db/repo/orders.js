@@ -80,36 +80,30 @@ async function create(db, { userId, branchId, items, shippingAddress, paymentMet
   const tax      = (subtotal - discount) * TAX_RATE;
   const total    = subtotal - discount + tax;
 
-  // Inserta pedido + líneas en una transacción si el pool es pg
-  if (db.type !== 'mysql') {
-    // PostgreSQL – usa transacción real
-    const client = await (require('pg').Pool
-      ? undefined
-      : null);
-    // Fallback: ejecutar en secuencia (el pool maneja concurrencia)
-  }
-
-  const { rows } = await db.query(
-    `INSERT INTO orders
-       (user_id, branch_id, subtotal, discount, tax, total, payment_method, shipping_address, notes)
-     VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)
-     RETURNING *`,
-    [userId, branchId, subtotal, discount, tax, total, paymentMethod,
-     shippingAddress ? JSON.stringify(shippingAddress) : null, notes || null],
-  );
-
-  const order = rows[0];
-
-  // Inserta líneas
-  for (const item of items) {
-    await db.query(
-      `INSERT INTO order_items (order_id, product_id, quantity, unit_price)
-       VALUES ($1,$2,$3,$4)`,
-      [order.id, item.productId, item.quantity, Number(item.unitPrice) || 0],
+  // Insert order + items atomically so a partial failure never leaves
+  // an order row without its items.
+  return db.transaction(async (tx) => {
+    const { rows } = await tx.query(
+      `INSERT INTO orders
+         (user_id, branch_id, subtotal, discount, tax, total, payment_method, shipping_address, notes)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)
+       RETURNING *`,
+      [userId, branchId, subtotal, discount, tax, total, paymentMethod,
+       shippingAddress ? JSON.stringify(shippingAddress) : null, notes || null],
     );
-  }
 
-  return findById(db, order.id);
+    const order = rows[0];
+
+    for (const item of items) {
+      await tx.query(
+        `INSERT INTO order_items (order_id, product_id, quantity, unit_price)
+         VALUES ($1,$2,$3,$4)`,
+        [order.id, item.productId, item.quantity, Number(item.unitPrice) || 0],
+      );
+    }
+
+    return findById(db, order.id);
+  });
 }
 
 async function updateStatus(db, id, status, comment) {
