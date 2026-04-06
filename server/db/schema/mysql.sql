@@ -66,7 +66,7 @@ CREATE TABLE IF NOT EXISTS branch_inventory (
   UNIQUE KEY uq_inv (branch_id, product_id),
   CONSTRAINT fk_inv_branch  FOREIGN KEY (branch_id)  REFERENCES branches(id)  ON DELETE CASCADE,
   CONSTRAINT fk_inv_product FOREIGN KEY (product_id) REFERENCES products(id)  ON DELETE CASCADE
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- ── Pedidos ───────────────────────────────────────────────────────────────────
 CREATE TABLE IF NOT EXISTS orders (
@@ -106,7 +106,7 @@ CREATE TABLE IF NOT EXISTS order_items (
   KEY idx_oi_product (product_id),
   CONSTRAINT fk_oi_order   FOREIGN KEY (order_id)   REFERENCES orders(id)   ON DELETE CASCADE,
   CONSTRAINT fk_oi_product FOREIGN KEY (product_id) REFERENCES products(id) ON DELETE RESTRICT
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- ── Log de auditoría ──────────────────────────────────────────────────────────
 CREATE TABLE IF NOT EXISTS audit_log (
@@ -121,7 +121,7 @@ CREATE TABLE IF NOT EXISTS audit_log (
   KEY idx_audit_user    (user_id),
   KEY idx_audit_action  (action),
   KEY idx_audit_created (created_at)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 SET FOREIGN_KEY_CHECKS = 1;
 
@@ -136,7 +136,7 @@ CREATE TABLE IF NOT EXISTS pos_sales (
   payment_method  VARCHAR(40),
   operator_id     CHAR(36),
   created_at      DATETIME(3)   NOT NULL DEFAULT CURRENT_TIMESTAMP(3)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE IF NOT EXISTS pos_sale_items (
   id           CHAR(36)      PRIMARY KEY DEFAULT (UUID()),
@@ -147,7 +147,7 @@ CREATE TABLE IF NOT EXISTS pos_sale_items (
   KEY idx_psi_sale (pos_sale_id),
   CONSTRAINT fk_psi_sale    FOREIGN KEY (pos_sale_id) REFERENCES pos_sales(id)  ON DELETE CASCADE,
   CONSTRAINT fk_psi_product FOREIGN KEY (product_id)  REFERENCES products(id)   ON DELETE RESTRICT
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- ── POS: tickets (comandas) ───────────────────────────────────────────────────
 CREATE TABLE IF NOT EXISTS pos_tickets (
@@ -162,7 +162,7 @@ CREATE TABLE IF NOT EXISTS pos_tickets (
   charged_by      VARCHAR(80),
   charged_at      DATETIME(3),
   created_at      DATETIME(3)   NOT NULL DEFAULT CURRENT_TIMESTAMP(3)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE IF NOT EXISTS pos_ticket_items (
   id             CHAR(36)      PRIMARY KEY DEFAULT (UUID()),
@@ -173,7 +173,7 @@ CREATE TABLE IF NOT EXISTS pos_ticket_items (
   KEY idx_pti_ticket (pos_ticket_id),
   CONSTRAINT fk_pti_ticket  FOREIGN KEY (pos_ticket_id) REFERENCES pos_tickets(id) ON DELETE CASCADE,
   CONSTRAINT fk_pti_product FOREIGN KEY (product_id)    REFERENCES products(id)    ON DELETE RESTRICT
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- ── POS: deudores ─────────────────────────────────────────────────────────────
 CREATE TABLE IF NOT EXISTS pos_debtors (
@@ -198,5 +198,5 @@ CREATE TABLE IF NOT EXISTS pos_expenses (
   note        TEXT,
   operator_id CHAR(36),
   created_at  DATETIME(3)   NOT NULL DEFAULT CURRENT_TIMESTAMP(3)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
