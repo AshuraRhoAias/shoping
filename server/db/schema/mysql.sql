@@ -48,6 +48,8 @@ CREATE TABLE IF NOT EXISTS products (
   category    VARCHAR(80),
   tags        JSON,
   images      JSON,
+  emoji       VARCHAR(10),
+  image_base64 MEDIUMTEXT,
   active      TINYINT(1)    NOT NULL DEFAULT 1,
   created_at  DATETIME(3)   NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
   updated_at  DATETIME(3)   NOT NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3),
@@ -124,10 +126,6 @@ CREATE TABLE IF NOT EXISTS audit_log (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 SET FOREIGN_KEY_CHECKS = 1;
-
--- ── POS: productos campos extra ───────────────────────────────────────────────
-ALTER TABLE products ADD COLUMN IF NOT EXISTS emoji         VARCHAR(10);
-ALTER TABLE products ADD COLUMN IF NOT EXISTS image_base64  MEDIUMTEXT;
 
 -- ── POS: ventas ───────────────────────────────────────────────────────────────
 CREATE TABLE IF NOT EXISTS pos_sales (
