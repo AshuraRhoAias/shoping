@@ -167,7 +167,7 @@ export const POST = secureRoute(async (body, sessionId, request) => {
     const hash = await hashPassword(password);
     const code = String(Math.floor(100000 + Math.random() * 900000));
     const user = await db.user.create({
-      data: { name, email, phone, passwordHash: hash, role: "cliente", verifyCode: code, verified: false },
+      data: { name, email, phone, passwordHash: hash, role: "user", verifyCode: code, verified: false },
     });
     // In production: send `code` via email/SMS here
     return { ok: true, email }; // code returned only in dev for demo
