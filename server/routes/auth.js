@@ -18,13 +18,14 @@ async function authRoutes(fastify) {
           name:     { type: 'string', minLength: 2, maxLength: 80 },
           email:    { type: 'string', format: 'email' },
           password: { type: 'string', minLength: 8 },
+          phone:    { type: 'string', maxLength: 20 },
           role:     { type: 'string', enum: ['user', 'seller'], default: 'user' },
           branchId: { type: 'string' },
         },
       },
     },
   }, async (request, reply) => {
-    const { name, email, password, role = 'user', branchId } = request.body;
+    const { name, email, password, phone, role = 'user', branchId } = request.body;
     const db = fastify.db;
 
     const existing = await usersRepo.findByEmail(db, email);
@@ -32,7 +33,7 @@ async function authRoutes(fastify) {
       return reply.code(409).send({ error: 'Conflict', message: 'Email ya registrado' });
     }
 
-    const user = await usersRepo.create(db, { name, email, password, role, branchId });
+    const user = await usersRepo.create(db, { name, email, password, phone, role, branchId });
     return reply.code(201).sendEncrypted({ user }, encLevelForRole(role));
   });
 
