@@ -70,10 +70,15 @@ function toColumns(data) {
 }
 
 /** Resuelve valor especial de Prisma { increment: n } / { decrement: n } */
-function resolveValue(val) {
+function resolveValue(val, dbType = "postgres") {
   if (val && typeof val === "object") {
     if ("increment" in val) return { expr: (col) => `${col} + ${Number(val.increment)}`, val: null };
-    if ("decrement" in val) return { expr: (col) => `GREATEST(0, ${col} - ${Number(val.decrement)})`, val: null };
+    if ("decrement" in val) {
+      const n = Number(val.decrement);
+      return dbType === "mysql"
+        ? { expr: (col) => `CASE WHEN ${col} > ${n} THEN ${col} - ${n} ELSE 0 END`, val: null }
+        : { expr: (col) => `GREATEST(0, ${col} - ${n})`, val: null };
+    }
   }
   return { expr: null, val };
 }
@@ -185,13 +190,25 @@ function makeModel(tableName) {
       const sets = []; const setVals = []; let i = 1;
       for (const [k, v] of Object.entries(data)) {
         const col = toSnake(k);
-        const { expr, val } = resolveValue(v);
+        const { expr, val } = resolveValue(v, pool.type);
         if (expr) sets.push(`${col} = ${expr(col)}`);
         else { sets.push(`${col} = $${i++}`); setVals.push(val); }
       }
-      const allVals = [...setVals, ...whereVals.map((_, j) => whereVals[j])];
-      // reindex where clause placeholders
       const reindexed = clause.replace(/\$(\d+)/g, (_, n) => `$${Number(n) + setVals.length}`);
+      const allVals = [...setVals, ...whereVals];
+
+      if (pool.type === "mysql") {
+        await pool.query(
+          `UPDATE ${tableName} SET ${sets.join(", ")} ${reindexed}`,
+          allVals,
+        );
+        const { rows } = await pool.query(
+          `SELECT * FROM ${tableName} ${clause} LIMIT 1`,
+          whereVals,
+        );
+        return rows[0] || null;
+      }
+
       const { rows } = await pool.query(
         `UPDATE ${tableName} SET ${sets.join(", ")} ${reindexed} RETURNING *`,
         allVals,

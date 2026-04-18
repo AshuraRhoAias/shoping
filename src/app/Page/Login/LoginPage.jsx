@@ -108,8 +108,11 @@ function Step1({ onNext, onLogin }) {
         } catch (err) {
             if (err?.status === 409) {
                 setError("Ya existe una cuenta con ese correo.");
+            } else if (err?.status) {
+                // Error HTTP real del backend — mostrar y no avanzar
+                setError("Error al registrar la cuenta. Intenta de nuevo.");
             } else {
-                // Modo demo: sin backend, continúa igualmente
+                // Sin backend (error de red) — modo demo
                 onNext({ name, email, phone, password: pass });
             }
         } finally {

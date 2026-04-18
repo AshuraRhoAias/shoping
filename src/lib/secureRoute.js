@@ -53,18 +53,24 @@ export function secureRoute(handler) {
       });
 
     } catch (err) {
-      // Session expired or tampered payload
-      if (err.message.includes("session") || err.message.includes("HMAC")) {
+      if (err.message?.includes("session") || err.message?.includes("HMAC")) {
         return NextResponse.json(
           { error: "Session invalid" },
           { status: 401, headers: secHeaders() }
         );
       }
 
-      console.error("[secureRoute]", err.message);
+      // Preserve HTTP status codes thrown by handlers (400, 409, 422, etc.)
+      const status =
+        Number.isInteger(err.status) && err.status >= 400 && err.status < 600
+          ? err.status
+          : 500;
+
+      if (status >= 500) console.error("[secureRoute]", err.message);
+
       return NextResponse.json(
-        { error: "Internal error" },
-        { status: 500, headers: secHeaders() }
+        { error: status >= 500 ? "Internal error" : (err.message || "Request failed") },
+        { status, headers: secHeaders() }
       );
     }
   };

@@ -24,16 +24,18 @@ function verifyPassword(password, stored) {
 // Normaliza fila de DB (snake_case → camelCase) y oculta password_hash
 function toUser(row) {
   if (!row) return null;
-  const { password_hash, ...r } = row;
+  const { password_hash, verify_code, ...r } = row;
   return {
-    id:           r.id,
-    name:         r.name,
-    email:        r.email,
-    role:         r.role,
-    branchId:     r.branch_id,
-    active:       Boolean(r.active),
-    createdAt:    r.created_at,
-    updatedAt:    r.updated_at,
+    id:        r.id,
+    name:      r.name,
+    email:     r.email,
+    phone:     r.phone || null,
+    role:      r.role,
+    branchId:  r.branch_id,
+    active:    Boolean(r.active),
+    verified:  Boolean(r.verified),
+    createdAt: r.created_at,
+    updatedAt: r.updated_at,
   };
 }
 
@@ -53,19 +55,19 @@ async function findById(db, id) {
   return rows[0] || null;
 }
 
-async function create(db, { name, email, password, role = 'user', branchId = null }) {
+async function create(db, { name, email, password, phone = null, role = 'user', branchId = null }) {
   const passwordHash = hashPassword(password);
   const { rows } = await db.query(
-    `INSERT INTO users (name, email, password_hash, role, branch_id)
-     VALUES ($1, $2, $3, $4, $5)
+    `INSERT INTO users (name, email, password_hash, phone, role, branch_id)
+     VALUES ($1, $2, $3, $4, $5, $6)
      RETURNING *`,
-    [name, email, passwordHash, role, branchId],
+    [name, email, passwordHash, phone, role, branchId],
   );
   return toUser(rows[0]);
 }
 
 async function update(db, id, fields) {
-  const allowed = ['name', 'email', 'role', 'branch_id', 'active'];
+  const allowed = ['name', 'email', 'phone', 'role', 'branch_id', 'active', 'verified'];
   const sets    = [];
   const vals    = [];
   let   idx     = 1;
