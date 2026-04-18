@@ -1,5 +1,7 @@
 'use strict';
 
+const usersRepo = require('../db/repo/users');
+
 /**
  * Admin / seller / staff routes – all responses encrypted at LEVEL 5 (admin).
  *
@@ -48,9 +50,10 @@ async function adminRoutes(fastify) {
       },
     },
   }, async (request, reply) => {
-    const { page = 1, limit = 100 } = request.query;
-    // Placeholder
-    return reply.sendEncrypted({ users: [], total: 0, page, limit }, ENC_LEVEL);
+    const { page = 1, limit = 100, branchId, role } = request.query;
+    const result = await usersRepo.list(fastify.db, { page, limit, branchId, role });
+    reply.header('X-Total-Count', String(result.total));
+    return reply.sendEncrypted({ ...result, page, limit }, ENC_LEVEL);
   });
 
   // ── Change user role ─────────────────────────────────────────────────────────
@@ -75,13 +78,11 @@ async function adminRoutes(fastify) {
       },
     },
   }, async (request, reply) => {
-    const { id }       = request.params;
+    const { id }             = request.params;
     const { role, branchId } = request.body;
-    // Placeholder – update in DB
-    return reply.sendEncrypted(
-      { id, role, branchId, updatedAt: new Date().toISOString() },
-      ENC_LEVEL,
-    );
+    const updated = await usersRepo.changeRole(fastify.db, id, role, branchId);
+    if (!updated) return reply.code(404).send({ error: 'Not Found' });
+    return reply.sendEncrypted({ user: updated }, ENC_LEVEL);
   });
 
   // ── Audit log ────────────────────────────────────────────────────────────────
