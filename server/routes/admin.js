@@ -1,5 +1,7 @@
 'use strict';
 
+const usersRepo = require('../db/repo/users');
+
 /**
  * Admin / seller / staff routes – all responses encrypted at LEVEL 5 (admin).
  *
@@ -18,18 +20,51 @@ async function adminRoutes(fastify) {
   fastify.addHook('preHandler', fastify.requireRole('admin', 'superadmin', 'seller'));
 
   // ── Dashboard KPIs ───────────────────────────────────────────────────────────
-  fastify.get('/dashboard', async (request, reply) => {
-    // Placeholder – aggregate from DB across all branches
-    const kpis = {
-      totalRevenue:   0,
-      totalOrders:    0,
-      totalUsers:     0,
-      activeBranches: 0,
-      revenueByBranch: [],
-      topProducts:    [],
-      generatedAt:    new Date().toISOString(),
-    };
-    return reply.sendEncrypted(kpis, ENC_LEVEL);
+  fastify.get('/dashboard', async (_request, reply) => {
+    const db = fastify.db;
+    const n  = (v) => Number(v) || 0;
+
+    const [usersR, ordersR, branchR, byBranchR, topProdR] = await Promise.all([
+      db.query('SELECT COUNT(*) AS c FROM users WHERE active = TRUE'),
+      db.query(`SELECT COUNT(*) AS c, COALESCE(SUM(total),0) AS rev
+                FROM orders WHERE status NOT IN ('cancelled','refunded')`),
+      db.query('SELECT COUNT(*) AS c FROM branches WHERE active = TRUE'),
+      db.query(
+        `SELECT b.id, b.name, COALESCE(SUM(o.total),0) AS revenue
+         FROM branches b
+         LEFT JOIN orders o ON o.branch_id = b.id
+                           AND o.status NOT IN ('cancelled','refunded')
+         GROUP BY b.id, b.name ORDER BY revenue DESC`,
+      ),
+      db.query(
+        `SELECT p.id, p.name, SUM(oi.quantity) AS qty, COALESCE(SUM(oi.total),0) AS revenue
+         FROM order_items oi
+         JOIN products p ON p.id = oi.product_id
+         JOIN orders   o ON o.id = oi.order_id
+         WHERE o.status NOT IN ('cancelled','refunded')
+         GROUP BY p.id, p.name ORDER BY revenue DESC LIMIT 5`,
+      ),
+    ]);
+
+    const agg  = ordersR.rows[0] ?? {};
+    return reply.sendEncrypted({
+      totalRevenue:   n(agg.rev),
+      totalOrders:    n(agg.c),
+      totalUsers:     n((usersR.rows[0] ?? {}).c),
+      activeBranches: n((branchR.rows[0] ?? {}).c),
+      revenueByBranch: byBranchR.rows.map(r => ({
+        id:      r.id,
+        name:    r.name,
+        revenue: n(r.revenue),
+      })),
+      topProducts: topProdR.rows.map(r => ({
+        id:      r.id,
+        name:    r.name,
+        qty:     n(r.qty),
+        revenue: n(r.revenue),
+      })),
+      generatedAt: new Date().toISOString(),
+    }, ENC_LEVEL);
   });
 
   // ── List all users with sensitive fields ─────────────────────────────────────
@@ -48,9 +83,10 @@ async function adminRoutes(fastify) {
       },
     },
   }, async (request, reply) => {
-    const { page = 1, limit = 100 } = request.query;
-    // Placeholder
-    return reply.sendEncrypted({ users: [], total: 0, page, limit }, ENC_LEVEL);
+    const { page = 1, limit = 100, branchId, role } = request.query;
+    const result = await usersRepo.list(fastify.db, { page, limit, branchId, role });
+    reply.header('X-Total-Count', String(result.total));
+    return reply.sendEncrypted({ ...result, page, limit }, ENC_LEVEL);
   });
 
   // ── Change user role ─────────────────────────────────────────────────────────
@@ -75,13 +111,11 @@ async function adminRoutes(fastify) {
       },
     },
   }, async (request, reply) => {
-    const { id }       = request.params;
+    const { id }             = request.params;
     const { role, branchId } = request.body;
-    // Placeholder – update in DB
-    return reply.sendEncrypted(
-      { id, role, branchId, updatedAt: new Date().toISOString() },
-      ENC_LEVEL,
-    );
+    const updated = await usersRepo.changeRole(fastify.db, id, role, branchId);
+    if (!updated) return reply.code(404).send({ error: 'Not Found' });
+    return reply.sendEncrypted({ user: updated }, ENC_LEVEL);
   });
 
   // ── Audit log ────────────────────────────────────────────────────────────────
@@ -101,9 +135,46 @@ async function adminRoutes(fastify) {
       },
     },
   }, async (request, reply) => {
-    const { page = 1, limit = 50 } = request.query;
-    // Placeholder – query audit log table
-    return reply.sendEncrypted({ entries: [], total: 0, page, limit }, ENC_LEVEL);
+    const db = fastify.db;
+    const { page = 1, limit = 50, userId, action, from, to } = request.query;
+
+    const conds  = [];
+    const params = [];
+    let   i      = 1;
+    if (userId) { conds.push(`al.user_id = $${i++}`);    params.push(userId); }
+    if (action) { conds.push(`al.action = $${i++}`);     params.push(action); }
+    if (from)   { conds.push(`al.created_at >= $${i++}`); params.push(from); }
+    if (to)     { conds.push(`al.created_at <= $${i++}`); params.push(to); }
+
+    const where  = conds.length ? 'WHERE ' + conds.join(' AND ') : '';
+    const offset = (page - 1) * limit;
+
+    const [{ rows }, countRes] = await Promise.all([
+      db.query(
+        `SELECT al.*, u.name AS user_name, u.email AS user_email
+         FROM audit_log al
+         LEFT JOIN users u ON u.id = al.user_id
+         ${where} ORDER BY al.created_at DESC LIMIT $${i++} OFFSET $${i++}`,
+        [...params, limit, offset],
+      ),
+      db.query(`SELECT COUNT(*) AS total FROM audit_log al ${where}`, params),
+    ]);
+
+    const total   = Number(countRes.rows[0]?.total || countRes.rows[0]?.['COUNT(*)'] || 0);
+    const entries = rows.map(r => ({
+      id:        r.id,
+      userId:    r.user_id,
+      userName:  r.user_name,
+      userEmail: r.user_email,
+      action:    r.action,
+      entity:    r.entity,
+      entityId:  r.entity_id,
+      payload:   r.payload,
+      ip:        r.ip,
+      createdAt: r.created_at,
+    }));
+
+    return reply.sendEncrypted({ entries, total, page, limit }, ENC_LEVEL);
   });
 
   // ── Issue branch-scoped JWT ───────────────────────────────────────────────────

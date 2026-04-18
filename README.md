@@ -1,36 +1,82 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Fit & Ecoree House — Shop Admin
 
-## Getting Started
+Sistema POS y panel de administración para múltiples sucursales.  
+Stack: **Next.js 16** (frontend) + **Fastify 5** (API) + **MySQL 8 / PostgreSQL 16**.
 
-First, run the development server:
+---
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+## Estructura del proyecto
+
+```
+shoping/
+├── src/                  # Next.js 16 App Router
+│   ├── app/              # Páginas y rutas API
+│   │   ├── api/pos/      # POS encriptado (ECDH + AES-256-GCM)
+│   │   ├── api/proxy/    # Proxy transparente → Fastify
+│   │   └── dashboard/    # Panel de admin (Server Components)
+│   ├── lib/              # Utilidades servidor/cliente
+│   └── middleware.js     # Seguridad: CSRF, HTTPS, headers
+└── server/               # Fastify API
+    ├── routes/           # auth, users, orders, products, branches, analytics
+    ├── db/               # Pool MySQL/PostgreSQL + repos
+    ├── plugins/          # JWT, CORS, cifrado multi-capa, rate-limit
+    └── scripts/          # Wizard de setup con Docker
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+---
 
-You can start editing the page by modifying `app/page.js`. The page auto-updates as you edit the file.
+## Inicio rápido
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+### 1. Servidor Fastify
 
-## Learn More
+```bash
+cd server
+cp .env.example .env          # edita las claves secretas
+npm install
+npm start                     # wizard interactivo → crea DB Docker
+```
 
-To learn more about Next.js, take a look at the following resources:
+### 2. Frontend Next.js
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+```bash
+# en la raíz del proyecto
+cp .env.local.example .env.local   # edita con los mismos valores del servidor
+npm install
+npm run dev
+```
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+Abre [http://localhost:3000](http://localhost:3000).
 
-## Deploy on Vercel
+**Credenciales demo** (sin backend):
+- `admin@fit.com` / `admin123`
+- `cliente@fit.com` / `cliente123`
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+---
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## Variables de entorno
+
+| Archivo | Propósito |
+|---------|-----------|
+| `server/.env` | Configuración del servidor Fastify (generado por el wizard) |
+| `.env.local` | Variables del frontend Next.js (copia de `.env.local.example`) |
+
+> `MASTER_SECRET` y `MASTER_SALT` deben ser idénticos en ambos archivos.
+
+---
+
+## Seguridad
+
+- **ECDH P-256** — intercambio de claves efímero por sesión POS
+- **AES-256-GCM + HMAC-SHA-256** — cifrado autenticado de cada petición/respuesta
+- **Cifrado multi-capa** — 5 capas para datos del backend (admin, user, public)
+- **JWT HS512** — access token (15 min) + refresh token (7 días)
+- **Rate limiting** — por IP, configurable por ruta
+- **Middleware** — headers CSP, HSTS, X-Frame-Options, validación CSRF
+
+---
+
+## Requisitos
+
+- Node.js ≥ 20
+- Docker (para el wizard de base de datos)
+- MySQL 8+ o PostgreSQL 16+
