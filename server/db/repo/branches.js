@@ -81,11 +81,12 @@ async function summary(db) {
   const { rows } = await db.query(`
     SELECT
       b.id, b.name, b.active,
-      COALESCE(SUM(o.total),  0)::FLOAT  AS revenue,
-      COUNT(DISTINCT o.id)               AS orders,
-      COALESCE(SUM(i.quantity), 0)       AS stock
+      COALESCE(SUM(o.total), 0)    AS revenue,
+      COUNT(DISTINCT o.id)         AS orders,
+      COALESCE(SUM(i.quantity), 0) AS stock
     FROM branches b
     LEFT JOIN orders           o ON o.branch_id = b.id
+                                AND o.status NOT IN ('cancelled','refunded')
     LEFT JOIN branch_inventory i ON i.branch_id = b.id
     GROUP BY b.id, b.name, b.active
     ORDER BY b.name
@@ -121,8 +122,17 @@ async function inventory(db, branchId, { page = 1, limit = 100, lowStock } = {})
   ]);
 
   return {
-    inventory: rows,
-    total:     Number(countRes.rows[0]?.total || countRes.rows[0]?.['COUNT(*)'] || 0),
+    inventory: rows.map(r => ({
+      id:          r.id,
+      branchId:    r.branch_id,
+      productId:   r.product_id,
+      productName: r.name,
+      sku:         r.sku,
+      price:       Number(r.price),
+      quantity:    r.quantity,
+      updatedAt:   r.updated_at,
+    })),
+    total: Number(countRes.rows[0]?.total || countRes.rows[0]?.['COUNT(*)'] || 0),
   };
 }
 

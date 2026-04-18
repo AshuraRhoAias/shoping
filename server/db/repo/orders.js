@@ -106,7 +106,7 @@ async function create(db, { userId, branchId, items, shippingAddress, paymentMet
   });
 }
 
-async function updateStatus(db, id, status, comment) {
+async function updateStatus(db, id, status) {
   const { rows } = await db.query(
     `UPDATE orders SET status = $1 WHERE id = $2 RETURNING *`, [status, id],
   );

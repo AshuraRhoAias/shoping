@@ -25,7 +25,11 @@ async function list(db, { page = 1, limit = 50, category, search, minPrice, maxP
   let   i          = 1;
 
   if (category)             { conditions.push(`p.category = $${i++}`);     params.push(category); }
-  if (search)               { conditions.push(`p.name ILIKE $${i++}`);      params.push(`%${search}%`); }
+  if (search) {
+    const likeOp = db.type === 'mysql' ? 'LIKE' : 'ILIKE';
+    conditions.push(`p.name ${likeOp} $${i++}`);
+    params.push(`%${search}%`);
+  }
   if (minPrice !== undefined){ conditions.push(`p.price >= $${i++}`);       params.push(minPrice); }
   if (maxPrice !== undefined){ conditions.push(`p.price <= $${i++}`);       params.push(maxPrice); }
 
@@ -117,18 +121,47 @@ async function bulkUpsert(db, products) {
 }
 
 async function updateStock(db, productId, branchId, quantity, operation = 'set') {
-  let expr;
-  if      (operation === 'increment') expr = `quantity + ${Number(quantity)}`;
-  else if (operation === 'decrement') expr = `GREATEST(0, quantity - ${Number(quantity)})`;
-  else                                expr = String(Number(quantity));
+  const qty = Number(quantity);
+  if (!Number.isFinite(qty) || qty < 0) throw new Error('Invalid quantity');
+
+  if (db.type === 'mysql') {
+    let updateExpr;
+    if (operation === 'increment') {
+      updateExpr = 'quantity + VALUES(quantity)';
+    } else if (operation === 'decrement') {
+      updateExpr = 'CASE WHEN quantity > VALUES(quantity) THEN quantity - VALUES(quantity) ELSE 0 END';
+    } else {
+      updateExpr = 'VALUES(quantity)';
+    }
+    await db.query(
+      `INSERT INTO branch_inventory (branch_id, product_id, quantity)
+       VALUES ($1, $2, $3)
+       ON DUPLICATE KEY UPDATE quantity = ${updateExpr}, updated_at = NOW()`,
+      [branchId, productId, qty],
+    );
+    const { rows } = await db.query(
+      'SELECT * FROM branch_inventory WHERE branch_id = $1 AND product_id = $2',
+      [branchId, productId],
+    );
+    return rows[0];
+  }
+
+  let conflictExpr;
+  if (operation === 'increment') {
+    conflictExpr = 'branch_inventory.quantity + EXCLUDED.quantity';
+  } else if (operation === 'decrement') {
+    conflictExpr = 'GREATEST(0, branch_inventory.quantity - EXCLUDED.quantity)';
+  } else {
+    conflictExpr = 'EXCLUDED.quantity';
+  }
 
   const { rows } = await db.query(
     `INSERT INTO branch_inventory (branch_id, product_id, quantity)
      VALUES ($1, $2, $3)
      ON CONFLICT (branch_id, product_id)
-     DO UPDATE SET quantity = ${expr}, updated_at = NOW()
+     DO UPDATE SET quantity = ${conflictExpr}, updated_at = NOW()
      RETURNING *`,
-    [branchId, productId, Number(quantity)],
+    [branchId, productId, qty],
   );
   return rows[0];
 }
