@@ -1,8 +1,11 @@
 "use client";
 import { createClient } from "@supabase/supabase-js";
 
-const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+// Cae a valores de relleno si faltan las env vars así el build/prerender no
+// truena (createClient lanza de forma síncrona con una URL vacía) — solo
+// falla en tiempo de ejecución si de verdad se usa sin configurar.
+const url = process.env.NEXT_PUBLIC_SUPABASE_URL || "https://placeholder.supabase.co";
+const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || "placeholder-anon-key";
 
 export const supabase = createClient(url, anonKey, {
   auth: {
