@@ -1,0 +1,256 @@
+/* ─── Fondo animado ──────────────────────────────────────────────────────── */
+.login-page {
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
+}
+
+.login-blob {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(70px);
+  opacity: 0.45;
+  z-index: -1;
+  will-change: transform;
+}
+
+.login-blob--a {
+  width: 480px;
+  height: 480px;
+  top: -160px;
+  left: -120px;
+  background: radial-gradient(circle at 30% 30%, #00d4aa, transparent 70%);
+  animation: blob-float-a 16s ease-in-out infinite;
+}
+
+.login-blob--b {
+  width: 420px;
+  height: 420px;
+  bottom: -140px;
+  right: -100px;
+  background: radial-gradient(circle at 60% 60%, #7c3aed, transparent 70%);
+  animation: blob-float-b 18s ease-in-out infinite;
+}
+
+.login-blob--c {
+  width: 320px;
+  height: 320px;
+  top: 40%;
+  left: 55%;
+  background: radial-gradient(circle at 50% 50%, #2563eb, transparent 70%);
+  animation: blob-float-c 22s ease-in-out infinite;
+}
+
+@keyframes blob-float-a {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  50% { transform: translate(60px, 40px) scale(1.15); }
+}
+@keyframes blob-float-b {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  50% { transform: translate(-50px, -30px) scale(1.1); }
+}
+@keyframes blob-float-c {
+  0%, 100% { transform: translate(-50%, -50%) scale(1); }
+  50% { transform: translate(-40%, -60%) scale(1.2); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .login-blob { animation: none; }
+}
+
+/* ─── Logo ───────────────────────────────────────────────────────────────── */
+.login-logo {
+  animation: logo-pop .6s cubic-bezier(.34,1.56,.64,1) both, logo-glow 3.5s ease-in-out .6s infinite;
+}
+
+@keyframes logo-pop {
+  from { transform: scale(.4) rotate(-12deg); opacity: 0; }
+  to { transform: scale(1) rotate(0deg); opacity: 1; }
+}
+@keyframes logo-glow {
+  0%, 100% { box-shadow: 0 8px 32px rgba(0, 212, 170, .18), 0 0 0 rgba(0, 212, 170, 0); }
+  50% { box-shadow: 0 8px 40px rgba(0, 212, 170, .35), 0 0 24px rgba(0, 212, 170, .25); }
+}
+
+/* ─── Encabezado ─────────────────────────────────────────────────────────── */
+.login-title { animation: fade-up .5s ease .1s both; }
+.login-subtitle { animation: fade-up .5s ease .18s both; }
+
+@keyframes fade-up {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* ─── Card ───────────────────────────────────────────────────────────────── */
+.login-card {
+  animation: card-in .55s cubic-bezier(.16,1,.3,1) .1s both;
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+  position: relative;
+}
+
+.login-card::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  padding: 1px;
+  background: linear-gradient(135deg, rgba(0,212,170,.55), rgba(124,58,237,.35), rgba(255,255,255,.05));
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  pointer-events: none;
+}
+
+@keyframes card-in {
+  from { opacity: 0; transform: translateY(24px) scale(.97); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+/* ─── Paneles de pasos (fade + slide al cambiar de step) ────────────────── */
+.login-step {
+  animation: step-in .38s cubic-bezier(.16,1,.3,1) both;
+}
+
+@keyframes step-in {
+  from { opacity: 0; transform: translateX(14px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
+/* ─── Inputs ─────────────────────────────────────────────────────────────── */
+.login-input {
+  transition: border-color .2s ease, box-shadow .2s ease, background-color .2s ease;
+}
+.login-input:focus {
+  border-color: #00d4aa !important;
+  box-shadow: 0 0 0 3px rgba(0, 212, 170, .16);
+}
+
+.login-eye-btn {
+  transition: color .15s ease, transform .15s ease;
+}
+.login-eye-btn:hover {
+  color: #00d4aa;
+  transform: translateY(-50%) scale(1.1);
+}
+
+/* ─── Botón principal ────────────────────────────────────────────────────── */
+.login-btn {
+  position: relative;
+  overflow: hidden;
+  transition: transform .15s ease, box-shadow .25s ease, filter .2s ease;
+  background-size: 200% 100%;
+  background-position: 0% 0%;
+}
+.login-btn:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 10px 28px rgba(0, 212, 170, .3);
+  background-position: 100% 0%;
+}
+.login-btn:active:not(:disabled) {
+  transform: translateY(0) scale(.98);
+}
+.login-btn::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: -60%;
+  width: 40%;
+  height: 100%;
+  background: linear-gradient(120deg, transparent, rgba(255,255,255,.35), transparent);
+  transform: skewX(-20deg);
+  transition: left .6s ease;
+}
+.login-btn:hover:not(:disabled)::after {
+  left: 130%;
+}
+
+/* ─── Links ──────────────────────────────────────────────────────────────── */
+.login-link {
+  position: relative;
+  transition: color .15s ease;
+}
+.login-link::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  bottom: -2px;
+  width: 0%;
+  height: 1px;
+  background: currentColor;
+  transition: width .2s ease;
+}
+.login-link:hover::after {
+  width: 100%;
+}
+
+/* ─── Error / shake ──────────────────────────────────────────────────────── */
+.login-error {
+  animation: error-shake .35s ease;
+}
+@keyframes error-shake {
+  0%, 100% { transform: translateX(0); }
+  25% { transform: translateX(-5px); }
+  75% { transform: translateX(5px); }
+}
+
+/* ─── Stepper ────────────────────────────────────────────────────────────── */
+.login-step-circle {
+  transition: all .3s ease;
+}
+.login-step-line {
+  position: relative;
+  overflow: hidden;
+}
+.login-step-line::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg, #00d4aa, #00b894);
+  transform: scaleX(0);
+  transform-origin: left;
+  transition: transform .4s ease;
+}
+.login-step-line--done::after {
+  transform: scaleX(1);
+}
+
+/* ─── Spinner ────────────────────────────────────────────────────────────── */
+.login-spinner {
+  animation: login-spin .7s linear infinite;
+}
+@keyframes login-spin {
+  to { transform: rotate(360deg); }
+}
+
+/* ─── Código OTP ─────────────────────────────────────────────────────────── */
+.login-otp-input {
+  transition: border-color .2s ease, box-shadow .2s ease;
+  letter-spacing: 10px;
+}
+.login-otp-input:focus {
+  border-color: #00d4aa !important;
+  box-shadow: 0 0 0 3px rgba(0, 212, 170, .16);
+}
+
+/* ─── Éxito ──────────────────────────────────────────────────────────────── */
+.login-success-icon {
+  animation: success-pop .5s cubic-bezier(.34,1.56,.64,1) both;
+}
+@keyframes success-pop {
+  from { transform: scale(0); opacity: 0; }
+  to { transform: scale(1); opacity: 1; }
+}
+.login-success-check {
+  stroke-dasharray: 24;
+  stroke-dashoffset: 24;
+  animation: success-draw .4s ease .25s forwards;
+}
+@keyframes success-draw {
+  to { stroke-dashoffset: 0; }
+}
+
+/* ─── Demo/aviso banner ──────────────────────────────────────────────────── */
+.login-banner {
+  animation: fade-up .4s ease both;
+}
