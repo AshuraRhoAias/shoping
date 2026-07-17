@@ -33,10 +33,11 @@ export function PageHeader({ title, user }) {
       <div className="topbar__right">
         <span className="topbar__clock">📶 💬 {now.toLocaleTimeString("es-MX", { hour: "2-digit", minute: "2-digit" })}</span>
         <Avatar initials={user.name[0]} />
-        <div>
-          <p className="topbar__meta-name">{user.name}</p>
-          <p className="topbar__meta-role">Operador activo</p>
-        </div>
+        <p>
+          <span className="topbar__meta-name">{user.name}</span>
+          <br />
+          <span className="topbar__meta-role">Operador activo</span>
+        </p>
       </div>
     </header>
   );
@@ -125,26 +126,30 @@ const PAY_METHODS = [{ id: "Efectivo", icon: "💵" }, { id: "MP / QR", icon: "�
 
 function PayMethodPicker({ method, setMethod }) {
   return (
-    <div className="pay-methods">
+    <ul className="pay-methods">
       {PAY_METHODS.map(m => (
-        <button key={m.id} className={`pay-method${method === m.id ? " pay-method--active" : ""}`} onClick={() => setMethod(m.id)}>
-          <p className="pay-method__icon">{m.icon}</p>{m.id}
-        </button>
+        <li key={m.id}>
+          <button className={`pay-method${method === m.id ? " pay-method--active" : ""}`} onClick={() => setMethod(m.id)}>
+            <p className="pay-method__icon">{m.icon}</p>{m.id}
+          </button>
+        </li>
       ))}
-    </div>
+    </ul>
   );
 }
 
 function OperatorPicker({ operator, setOperator }) {
   return (
-    <div className="operators">
+    <ul className="operators">
       {OPERATORS.map(op => (
-        <button key={op.initials} className={`operator${operator === op.initials ? " operator--active" : ""}`} style={{ "--c": op.color }} onClick={() => setOperator(op.initials)}>
-          <Avatar initials={op.initials} size={32} color={op.color} />
-          <p className="operator__name">{op.name}</p>
-        </button>
+        <li key={op.initials}>
+          <button className={`operator${operator === op.initials ? " operator--active" : ""}`} style={{ "--c": op.color }} onClick={() => setOperator(op.initials)}>
+            <Avatar initials={op.initials} size={32} color={op.color} />
+            <p className="operator__name">{op.name}</p>
+          </button>
+        </li>
       ))}
-    </div>
+    </ul>
   );
 }
 
@@ -186,11 +191,11 @@ export function GuardarTicketModal({ onClose, onSave }) {
       <MInput label="Nombre del cliente (opcional)" placeholder="Ej. Carlos M., Sandra..." value={client} onChange={setClient} />
       <div className="field">
         <label className="field__label">Mesa / Ubicación</label>
-        <div className="mesa-grid">
+        <ul className="mesa-grid">
           {MESAS.map(m => (
-            <button key={m} className={`mesa${mesa === m ? " mesa--active" : ""}`} onClick={() => setMesa(m)}>{m}</button>
+            <li key={m}><button className={`mesa${mesa === m ? " mesa--active" : ""}`} onClick={() => setMesa(m)}>{m}</button></li>
           ))}
-        </div>
+        </ul>
       </div>
       <MInput label="Nota (opcional)" placeholder="Sin azúcar, para llevar..." value={note} onChange={setNote} />
       <Btn onClick={() => { onSave({ client, mesa, note }); onClose(); }}>✅ Guardar Ticket</Btn>
@@ -210,10 +215,10 @@ export function NuevoDeudorModal({ user, onClose, onSave }) {
       <MInput label="Teléfono" placeholder="555-0000" value={phone} onChange={setPhone} />
       <MInput label="Concepto" required placeholder="Ej. Mensualidad Gym - Junio" value={concept} onChange={setConcept} />
       <MInput label="Monto" required placeholder="0.00" value={amount} onChange={setAmount} type="number" prefix="$" />
-      <div className="reg-by">
+      <p className="reg-by">
         <Avatar initials={user.name.slice(0, 2).toUpperCase()} size={28} />
         <span className="reg-by__text">Registrado por: <strong>{user.name}</strong></span>
-      </div>
+      </p>
       <Btn disabled={!valid} onClick={() => { onSave({ name, phone, concept, amount: parseFloat(amount) }); onClose(); }}>Registrar Deudor</Btn>
     </Modal>
   );
@@ -227,20 +232,22 @@ export function CobrarTicketModal({ ticket, onClose, onConfirm }) {
   const canConfirm = method !== "Efectivo" || parseFloat(cash || 0) >= ticket.total;
   return (
     <Modal title="Cobrar Ticket" onClose={onClose}>
-      <p className="stat-card__sub" style={{ marginBottom: 16 }}>{ticket.location} — {ticket.client || "Sin cliente"}</p>
+      <p className="modal-subtitle">{ticket.location} — {ticket.client || "Sin cliente"}</p>
       <div className="amount-box">
         <p className="amount-box__label">Total a cobrar</p>
         <p className="amount-box__value">${ticket.total.toFixed(2)}</p>
       </div>
       <div className="ticket-items">
-        {ticket.items.map((item, i) => (
-          <div key={i} className="ticket-items__row">
-            <span>{item.name}</span><span className="ticket-items__price">${item.price}.00</span>
-          </div>
-        ))}
-        <div className="ticket-items__saved">
+        <ul className="ticket-items__list">
+          {ticket.items.map((item, i) => (
+            <li key={i} className="ticket-items__row">
+              <span>{item.name}</span><span className="ticket-items__price">${item.price}.00</span>
+            </li>
+          ))}
+        </ul>
+        <p className="ticket-items__saved">
           <Avatar initials={ticket.savedBy[0]} size={20} color={COLORS.blue} /> Guardado por {ticket.savedBy}
-        </div>
+        </p>
       </div>
       <PayMethodPicker method={method} setMethod={setMethod} />
       {method === "Efectivo" && <MInput label="Efectivo recibido" placeholder="$0.00" value={cash} onChange={setCash} type="number" prefix="$" />}
@@ -319,11 +326,11 @@ export function AgregarProductoModal({ onClose, onSave }) {
     <Modal title="Agregar Producto" titleIcon="📦" onClose={onClose}>
       <div className="field">
         <label className="field__label">Categoría</label>
-        <div className="chips">
+        <ul className="chips">
           {CATS_FOR_PRODUCT.map(c => (
-            <button key={c} className={`chip${cat === c ? " chip--active" : ""}`} onClick={() => setCat(c)}>{c}</button>
+            <li key={c}><button className={`chip${cat === c ? " chip--active" : ""}`} onClick={() => setCat(c)}>{c}</button></li>
           ))}
-        </div>
+        </ul>
       </div>
 
       <div className="field">
@@ -350,7 +357,7 @@ export function AgregarProductoModal({ onClose, onSave }) {
 
       <div className="field">
         <div className="toggle-row">
-          <label className="field__label" style={{ margin: 0 }}>¿Tiene control de stock?</label>
+          <label className="field__label field__label--inline">¿Tiene control de stock?</label>
           <button className={`toggle${hasStock ? " toggle--on" : ""}`} onClick={() => setHasStock(!hasStock)} aria-pressed={hasStock}>
             <span className="toggle__knob" />
           </button>
@@ -380,7 +387,7 @@ export function BarChart({ data, height = 200 }) {
   const steps = Array.from({ length: ySteps + 1 }, (_, i) => Math.round(max * i / ySteps));
 
   return (
-    <div className="bar-chart" ref={containerRef}>
+    <figure className="bar-chart" ref={containerRef}>
       {hovered && (
         <div className="bar-chart__tooltip" style={{ left: hovered.x, top: hovered.y - 66 }}>
           <p className="bar-chart__tooltip-label">{hovered.label}</p>
@@ -394,14 +401,14 @@ export function BarChart({ data, height = 200 }) {
             <span key={i} className="bar-chart__ytick">{v >= 1000 ? `${(v / 1000).toFixed(0)}k` : v}</span>
           ))}
         </div>
-        <div className="bar-chart__plot">
+        <ul className="bar-chart__plot">
           {steps.map((_, i) => (
             <span key={i} className="bar-chart__gridline" style={{ "--b": `${(i / (steps.length - 1)) * (height - 28)}px` }} />
           ))}
           {data.map((d, i) => {
             const pct = (d.value / max) * 100;
             return (
-              <div key={i} className="bar-col"
+              <li key={i} className="bar-col"
                 onMouseEnter={e => {
                   const rect = containerRef.current?.getBoundingClientRect();
                   const br = e.currentTarget.getBoundingClientRect();
@@ -412,12 +419,12 @@ export function BarChart({ data, height = 200 }) {
                   <div className="bar" style={{ "--h": `${pct}%`, "--d": `${i * 60}ms` }} />
                 </div>
                 <span className="bar-col__label">{d.label}</span>
-              </div>
+              </li>
             );
           })}
-        </div>
+        </ul>
       </div>
-    </div>
+    </figure>
   );
 }
 
@@ -447,7 +454,7 @@ export function DonutChart({ segments, size = 180, thickness = 30 }) {
   ).result;
 
   return (
-    <div className="donut">
+    <figure className="donut">
       <div className="donut__figure" style={{ width: size, height: size }}>
         <svg className="donut__svg" width={size} height={size}>
           <circle cx={cx} cy={cy} r={r} fill="none" stroke="var(--border)" strokeWidth={thickness} />
@@ -460,10 +467,10 @@ export function DonutChart({ segments, size = 180, thickness = 30 }) {
             />
           ))}
         </svg>
-        <div className="donut__center">
+        <figcaption className="donut__center">
           <span className="donut__center-label">Total</span>
           <span className="donut__center-value">100%</span>
-        </div>
+        </figcaption>
       </div>
       <ul className="donut__legend">
         {segments.map((seg, i) => (
@@ -474,7 +481,7 @@ export function DonutChart({ segments, size = 180, thickness = 30 }) {
           </li>
         ))}
       </ul>
-    </div>
+    </figure>
   );
 }
 
@@ -552,19 +559,19 @@ export function DeudoresView({ user }) {
       }} />}
       <PageHeader title="Gestión de Deudores" user={user} />
       <ScrollArea>
-        <div className="debt-stats">
+        <ul className="debt-stats">
           {stats.map((s, i) => {
             const m = STATUS_META[s.status];
             return (
-              <article key={s.status} className="debt-stat" style={{ "--c": m.color, "--d": `${i * 80}ms` }}>
+              <li key={s.status} className="debt-stat" style={{ "--c": m.color, "--d": `${i * 80}ms` }}>
                 <p className="debt-stat__label">{m.icon} {s.status}</p>
                 <p className="debt-stat__count">{s.count}</p>
                 <p className="debt-stat__amount">${s.amount.toLocaleString()}</p>
                 <p className="debt-stat__range">{m.range}</p>
-              </article>
+              </li>
             );
           })}
-        </div>
+        </ul>
         <section className="debt-total">
           <div className="debt-total__left">
             <span className="debt-total__icon">👥</span>
@@ -575,23 +582,23 @@ export function DeudoresView({ user }) {
           </div>
           <div>
             <p className="debt-total__amount">${totalDebt.toLocaleString()}.00</p>
-            <p className="debt-total__sub" style={{ textAlign: "right" }}>pendiente</p>
+            <p className="debt-total__sub debt-total__sub--right">pendiente</p>
           </div>
         </section>
         <div className="toolbar-row">
-          <div className="search">
+          <search className="search">
             <span className="search__icon">🔍</span>
             <input className="search__input" placeholder="Buscar deudor, teléfono o concepto..." value={search} onChange={e => setSearch(e.target.value)} />
-          </div>
+          </search>
           <Btn onClick={() => setShowModal(true)}>+ Nuevo Deudor</Btn>
         </div>
-        <div className="filters">
+        <ul className="filters">
           {["Todos", ...STATUS_ORDER].map(f => (
-            <button key={f} className={`chip${filter === f ? " chip--active" : ""}`} onClick={() => setFilter(f)}>
+            <li key={f}><button className={`chip${filter === f ? " chip--active" : ""}`} onClick={() => setFilter(f)}>
               {f === "Todos" ? `Todos (${deudores.length})` : `${STATUS_META[f].icon} ${f} (${deudores.filter(d => d.status === f).length})`}
-            </button>
+            </button></li>
           ))}
-        </div>
+        </ul>
         {STATUS_ORDER.map(status => {
           const group = grouped[status];
           if (!group.length) return null;
@@ -599,37 +606,41 @@ export function DeudoresView({ user }) {
           return (
             <section key={status}>
               <SectionLabel icon={m.icon} title={`${status} (${m.range})`} count={`${group.length} clientes`} color={m.color} />
-              {group.map((d, i) => (
-                <article key={d.id} className="debt-card animate" style={{ "--c": m.color, "--d": `${i * 60}ms` }} onClick={() => setExpanded(expanded === d.id ? null : d.id)}>
-                  <div className="debt-card__row">
-                    <Avatar initials={d.initials} color={m.color} size={38} />
-                    <div className="debt-card__info">
-                      <div className="debt-card__name-row"><span className="debt-card__name">{d.name}</span><StatusBadge status={d.status} /></div>
-                      <p className="debt-card__meta">📅 {d.days} días &nbsp;📞 {d.phone}</p>
-                    </div>
-                    <div className="debt-card__amount">
-                      <p className="debt-card__amount-value" style={{ "--c": m.color }}>${d.amount.toLocaleString()}.00</p>
-                      <p className="debt-card__amount-sub">pendiente</p>
-                    </div>
-                    <span className={`debt-card__chevron${expanded === d.id ? " debt-card__chevron--open" : ""}`}>▾</span>
-                  </div>
-                  {expanded === d.id && (
-                    <div className="debt-card__actions">
-                      <Btn variant="ghost" size="sm">📋 Ver historial</Btn>
-                      <Btn variant="primary" size="sm">💰 Registrar pago</Btn>
-                      <Btn variant="danger" size="sm" onClick={async e => {
-                        e.stopPropagation();
-                        try {
-                          await DeudoresAPI.delete(d.id);
-                          setDeudores(p => p.filter(x => x.id !== d.id));
-                        } catch (err) {
-                          console.error("Error al eliminar deudor:", err);
-                        }
-                      }}>🗑 Eliminar</Btn>
-                    </div>
-                  )}
-                </article>
-              ))}
+              <ul className="debt-list">
+                {group.map((d, i) => (
+                  <li key={d.id}>
+                    <article className="debt-card animate" style={{ "--c": m.color, "--d": `${i * 60}ms` }} onClick={() => setExpanded(expanded === d.id ? null : d.id)}>
+                      <div className="debt-card__row">
+                        <Avatar initials={d.initials} color={m.color} size={38} />
+                        <div className="debt-card__info">
+                          <div className="debt-card__name-row"><span className="debt-card__name">{d.name}</span><StatusBadge status={d.status} /></div>
+                          <p className="debt-card__meta">📅 {d.days} días &nbsp;📞 {d.phone}</p>
+                        </div>
+                        <div className="debt-card__amount">
+                          <p className="debt-card__amount-value" style={{ "--c": m.color }}>${d.amount.toLocaleString()}.00</p>
+                          <p className="debt-card__amount-sub">pendiente</p>
+                        </div>
+                        <span className={`debt-card__chevron${expanded === d.id ? " debt-card__chevron--open" : ""}`}>▾</span>
+                      </div>
+                      {expanded === d.id && (
+                        <menu className="debt-card__actions">
+                          <li><Btn variant="ghost" size="sm">📋 Ver historial</Btn></li>
+                          <li><Btn variant="primary" size="sm">💰 Registrar pago</Btn></li>
+                          <li><Btn variant="danger" size="sm" onClick={async e => {
+                            e.stopPropagation();
+                            try {
+                              await DeudoresAPI.delete(d.id);
+                              setDeudores(p => p.filter(x => x.id !== d.id));
+                            } catch (err) {
+                              console.error("Error al eliminar deudor:", err);
+                            }
+                          }}>🗑 Eliminar</Btn></li>
+                        </menu>
+                      )}
+                    </article>
+                  </li>
+                ))}
+              </ul>
             </section>
           );
         })}
@@ -669,58 +680,63 @@ export function TicketsView({ user, tickets, setTickets, onRecover }) {
         <div className="subhead">
           <span>🎫</span><h3 className="subhead__title">Tickets Pendientes</h3>
         </div>
-        <div className="tickets-grid">
-          {tickets.map((t, i) => (
-            <article key={t.id} className={`ticket-card animate${t.urgent ? " ticket-card--urgent" : ""}`} style={{ "--d": `${i * 100}ms` }}>
-              <header className="ticket__head">
-                <div className="ticket__head-left">
-                  <span className="ticket__icon">🛍</span>
-                  <div>
-                    <p className="ticket__loc">{t.location}</p>
-                    <p className={`ticket__time${t.urgent ? " ticket__time--urgent" : ""}`}>🕐 {t.time} {t.urgent && <StatusBadge status="Urgente" />}</p>
-                  </div>
-                </div>
-                <div>
-                  <p className={`ticket__total${t.urgent ? " ticket__total--urgent" : ""}`}>${t.total}.00</p>
-                  <p className="ticket__count">{t.items.length} productos</p>
-                </div>
-              </header>
-              {t.items.map((item, j) => (
-                <div key={j} className="ticket__line"><span>{item.name}</span><span>${item.price}.00</span></div>
-              ))}
-              {t.note && <p className="ticket__note">📋 {t.note}</p>}
-              <p className="ticket__saved">
-                <Avatar initials={t.savedBy[0]} size={20} color={COLORS.blue} /> Guardado por <strong>{t.savedBy}</strong>
-                {t.client && <> &nbsp;👤 <span>{t.client}</span></>}
-              </p>
-              <div className="ticket__actions">
-                <button className="icon-btn-danger" onClick={async () => {
-                  try {
-                    await TicketsAPI.delete(t.id);
-                    setTickets(p => p.filter(x => x.id !== t.id));
-                  } catch (err) {
-                    console.error("Error al eliminar ticket:", err);
-                  }
-                }}>🗑</button>
-                <Btn variant="ghost" onClick={async () => {
-                  try {
-                    await TicketsAPI.delete(t.id);
-                    setTickets(p => p.filter(x => x.id !== t.id));
-                    onRecover(t.cart);
-                  } catch (err) {
-                    console.error("Error al recuperar ticket:", err);
-                  }
-                }}>🔄 Recuperar</Btn>
-                <Btn variant="primary" onClick={() => setCobrarTicket(t)}>✅ Cobrar</Btn>
-              </div>
-            </article>
-          ))}
-          {tickets.length === 0 && (
-            <div className="empty-block">
-              <p className="empty-block__emoji">🎉</p><p>No hay tickets pendientes</p>
-            </div>
-          )}
-        </div>
+        {tickets.length === 0 ? (
+          <div className="empty-block">
+            <p className="empty-block__emoji">🎉</p><p>No hay tickets pendientes</p>
+          </div>
+        ) : (
+          <ul className="tickets-grid">
+            {tickets.map((t, i) => (
+              <li key={t.id}>
+                <article className={`ticket-card animate${t.urgent ? " ticket-card--urgent" : ""}`} style={{ "--d": `${i * 100}ms` }}>
+                  <header className="ticket__head">
+                    <div className="ticket__head-left">
+                      <span className="ticket__icon">🛍</span>
+                      <div>
+                        <p className="ticket__loc">{t.location}</p>
+                        <p className={`ticket__time${t.urgent ? " ticket__time--urgent" : ""}`}>🕐 {t.time} {t.urgent && <StatusBadge status="Urgente" />}</p>
+                      </div>
+                    </div>
+                    <div>
+                      <p className={`ticket__total${t.urgent ? " ticket__total--urgent" : ""}`}>${t.total}.00</p>
+                      <p className="ticket__count">{t.items.length} productos</p>
+                    </div>
+                  </header>
+                  <ul className="ticket__lines">
+                    {t.items.map((item, j) => (
+                      <li key={j} className="ticket__line"><span>{item.name}</span><span>${item.price}.00</span></li>
+                    ))}
+                  </ul>
+                  {t.note && <p className="ticket__note">📋 {t.note}</p>}
+                  <p className="ticket__saved">
+                    <Avatar initials={t.savedBy[0]} size={20} color={COLORS.blue} /> Guardado por <strong>{t.savedBy}</strong>
+                    {t.client && <> &nbsp;👤 <span>{t.client}</span></>}
+                  </p>
+                  <menu className="ticket__actions">
+                    <li><button className="icon-btn-danger" onClick={async () => {
+                      try {
+                        await TicketsAPI.delete(t.id);
+                        setTickets(p => p.filter(x => x.id !== t.id));
+                      } catch (err) {
+                        console.error("Error al eliminar ticket:", err);
+                      }
+                    }}>🗑</button></li>
+                    <li><Btn variant="ghost" onClick={async () => {
+                      try {
+                        await TicketsAPI.delete(t.id);
+                        setTickets(p => p.filter(x => x.id !== t.id));
+                        onRecover(t.cart);
+                      } catch (err) {
+                        console.error("Error al recuperar ticket:", err);
+                      }
+                    }}>🔄 Recuperar</Btn></li>
+                    <li><Btn variant="primary" onClick={() => setCobrarTicket(t)}>✅ Cobrar</Btn></li>
+                  </menu>
+                </article>
+              </li>
+            ))}
+          </ul>
+        )}
       </ScrollArea>
     </section>
   );
@@ -756,8 +772,10 @@ export function InventarioView({ user, products, setProducts }) {
       <ScrollArea>
         {lowStock.length > 0 && (
           <aside className="low-stock">
-            <span className="low-stock__title">⚠️ {lowStock.length} productos con stock bajo</span>
-            {lowStock.map(p => <span key={p.id} className="low-stock__tag">{p.emoji} {p.name} ({p.stock})</span>)}
+            <p className="low-stock__title">⚠️ {lowStock.length} productos con stock bajo</p>
+            <ul className="low-stock__tags">
+              {lowStock.map(p => <li key={p.id}><span className="low-stock__tag">{p.emoji} {p.name} ({p.stock})</span></li>)}
+            </ul>
           </aside>
         )}
         <div className="stats-row">
@@ -766,44 +784,50 @@ export function InventarioView({ user, products, setProducts }) {
           <StatCard icon="❌" label="Agotados" value={agotados} color={COLORS.danger} delay={160} />
           <StatCard icon="💲" label="Valor en stock" value={`$${totalVal.toLocaleString()}`} color={COLORS.green} delay={240} />
         </div>
-        <div className="toolbar-row" style={{ flexWrap: "wrap" }}>
-          <div className="search">
+        <div className="toolbar-row toolbar-row--wrap">
+          <search className="search">
             <span className="search__icon">🔍</span>
             <input className="search__input" placeholder="Buscar producto..." value={search} onChange={e => setSearch(e.target.value)} />
-          </div>
-          {CATS_INV.map(c => (
-            <button key={c} className={`chip${cat === c ? " chip--active" : ""}`} onClick={() => setCat(c)}>{c}</button>
-          ))}
+          </search>
+          <ul className="chips">
+            {CATS_INV.map(c => (
+              <li key={c}><button className={`chip${cat === c ? " chip--active" : ""}`} onClick={() => setCat(c)}>{c}</button></li>
+            ))}
+          </ul>
           <Btn variant="primary" onClick={() => setShowModal(true)}>+ Agregar</Btn>
         </div>
-        <div className="data-card">
-          <div className="inv-head">
-            <span>Producto</span><span>Categoría</span><span>Precio</span><span>Stock</span><span>Estado</span><span>Acciones</span>
-          </div>
-          {filtered.map((p, i) => (
-            <div key={p.id} className="inv-row animate" style={{ "--c": statusColor[p.status] || "var(--border)", "--d": `${i * 30}ms` }}>
-              <div className="inv-row__prod">
-                <ProductThumb p={p} size={36} />
-                <span className="inv-row__prod-name">{p.name}</span>
-              </div>
-              <span><span className="cat-tag">{p.cat}</span></span>
-              <span className="inv-row__price">${p.price}.00</span>
-              <span className={p.stock !== null && p.stock <= 8 ? "inv-row__stock--low" : ""}>{p.stock !== null ? `↘ ${p.stock}` : "—"}</span>
-              <StatusBadge status={p.status} />
-              <div className="inv-row__actions">
-                <button className="icon-btn">✏️</button>
-                <button className="icon-btn" onClick={async () => {
-                  try {
-                    await ProductsAPI.delete(p.id);
-                    setProducts(prev => prev.filter(x => x.id !== p.id));
-                  } catch (err) {
-                    console.error("Error al eliminar producto:", err);
-                  }
-                }}>🗑</button>
-              </div>
-            </div>
-          ))}
-        </div>
+        <table className="data-card">
+          <thead>
+            <tr className="inv-head">
+              <th>Producto</th><th>Categoría</th><th>Precio</th><th>Stock</th><th>Estado</th><th>Acciones</th>
+            </tr>
+          </thead>
+          <tbody>
+            {filtered.map((p, i) => (
+              <tr key={p.id} className="inv-row animate" style={{ "--c": statusColor[p.status] || "var(--border)", "--d": `${i * 30}ms` }}>
+                <td className="inv-row__prod">
+                  <ProductThumb p={p} size={36} />
+                  <span className="inv-row__prod-name">{p.name}</span>
+                </td>
+                <td><span className="cat-tag">{p.cat}</span></td>
+                <td className="inv-row__price">${p.price}.00</td>
+                <td className={p.stock !== null && p.stock <= 8 ? "inv-row__stock--low" : ""}>{p.stock !== null ? `↘ ${p.stock}` : "—"}</td>
+                <td><StatusBadge status={p.status} /></td>
+                <td className="inv-row__actions">
+                  <button className="icon-btn">✏️</button>
+                  <button className="icon-btn" onClick={async () => {
+                    try {
+                      await ProductsAPI.delete(p.id);
+                      setProducts(prev => prev.filter(x => x.id !== p.id));
+                    } catch (err) {
+                      console.error("Error al eliminar producto:", err);
+                    }
+                  }}>🗑</button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
       </ScrollArea>
     </section>
   );
@@ -868,32 +892,36 @@ export function GastosView({ user }) {
           </section>
         )}
         <div className="gasto-toolbar">
-          <div className="gasto-toolbar__filters">
+          <ul className="chips gasto-toolbar__filters">
             {GASTO_CATS_FILTER.map(f => (
-              <button key={f} className={`chip${filter === f ? " chip--active" : ""}`} onClick={() => setFilter(f)}>{f}</button>
+              <li key={f}><button className={`chip${filter === f ? " chip--active" : ""}`} onClick={() => setFilter(f)}>{f}</button></li>
             ))}
-          </div>
+          </ul>
           <Btn variant="primary" onClick={() => setShowModal(true)}>+ Nuevo Gasto</Btn>
         </div>
         <div className="data-card">
-          <div className="data-card__head">
+          <p className="data-card__head">
             <span>{filtered.length} gastos</span>
             <span>Total: <strong>${filtered.reduce((s, g) => s + g.amount, 0).toLocaleString()}</strong></span>
-          </div>
-          {filtered.map((g, i) => (
-            <article key={g.id} className="gasto-row animate" style={{ "--c": g.color, "--d": `${i * 70}ms` }}>
-              <span className="gasto__icon">🏷️</span>
-              <div className="gasto__info">
-                <p className="gasto__desc">{g.desc}</p>
-                <div className="gasto__meta">
-                  <span className="gasto__cat">{g.cat}</span>
-                  <span className="gasto__date">📅 {g.date}</span>
-                  <span className="gasto__by"><Avatar initials={g.byInitials} size={18} color={COLORS.blue} /> {g.by}</span>
-                </div>
-              </div>
-              <span className="gasto__amount">${g.amount.toLocaleString()}</span>
-            </article>
-          ))}
+          </p>
+          <ul className="gasto-list">
+            {filtered.map((g, i) => (
+              <li key={g.id}>
+                <article className="gasto-row animate" style={{ "--c": g.color, "--d": `${i * 70}ms` }}>
+                  <span className="gasto__icon">🏷️</span>
+                  <div className="gasto__info">
+                    <p className="gasto__desc">{g.desc}</p>
+                    <div className="gasto__meta">
+                      <span className="gasto__cat">{g.cat}</span>
+                      <span className="gasto__date">📅 {g.date}</span>
+                      <span className="gasto__by"><Avatar initials={g.byInitials} size={18} color={COLORS.blue} /> {g.by}</span>
+                    </div>
+                  </div>
+                  <span className="gasto__amount">${g.amount.toLocaleString()}</span>
+                </article>
+              </li>
+            ))}
+          </ul>
         </div>
       </ScrollArea>
     </section>
@@ -981,28 +1009,35 @@ export function ReportesView({ user }) {
               </section>
             </div>
             <div className="data-card">
-              <div className="data-card__title-row">
+              <header className="data-card__title-row">
                 <h4 className="data-card__title">👥 Reporte de Deudores</h4>
                 <span className="data-card__date">📅 Al {new Date().toLocaleDateString("es-MX")}</span>
-              </div>
-              <div className="report-head">
-                <span>Cliente</span><span>Total Deuda</span><span className="report-head__paid">Pagado</span><span className="report-head__pending">Pendiente</span><span>Estado</span>
-              </div>
-              {deudoresReport.length === 0 && (
+              </header>
+              {deudoresReport.length === 0 ? (
                 <p className="report-empty">Sin deudores registrados 🎉</p>
+              ) : (
+                <table>
+                  <thead>
+                    <tr className="report-head">
+                      <th>Cliente</th><th>Total Deuda</th><th className="report-head__paid">Pagado</th><th className="report-head__pending">Pendiente</th><th>Estado</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {deudoresReport.map((d, i) => (
+                      <tr key={i} className="report-row animate" style={{ "--d": `${i * 60}ms` }}>
+                        <td className="report-row__client">
+                          <Avatar initials={d.initials} size={30} color={sc[d.status] || COLORS.muted} />
+                          <span className="report-row__client-name">{d.name}</span>
+                        </td>
+                        <td>${d.totalDebt.toLocaleString()}.00</td>
+                        <td className="report-row__paid">${d.paid.toLocaleString()}.00</td>
+                        <td className="report-row__pending">${d.pending.toLocaleString()}.00</td>
+                        <td><StatusBadge status={d.status} /></td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
               )}
-              {deudoresReport.map((d, i) => (
-                <div key={i} className="report-row animate" style={{ "--d": `${i * 60}ms` }}>
-                  <div className="report-row__client">
-                    <Avatar initials={d.initials} size={30} color={sc[d.status] || COLORS.muted} />
-                    <span className="report-row__client-name">{d.name}</span>
-                  </div>
-                  <span>${d.totalDebt.toLocaleString()}.00</span>
-                  <span className="report-row__paid">${d.paid.toLocaleString()}.00</span>
-                  <span className="report-row__pending">${d.pending.toLocaleString()}.00</span>
-                  <StatusBadge status={d.status} />
-                </div>
-              ))}
             </div>
           </>
         )}
