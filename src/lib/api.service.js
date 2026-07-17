@@ -1,8 +1,13 @@
 /**
  * lib/api.service.js
  * Capa de acceso a datos del frontend — habla directo con Supabase (sin backend propio).
+ *
+ * Cada entidad se arma sobre `createResource()` (ver ./supabaseResource), que
+ * aporta el CRUD genérico. Aquí solo viven los mappers y helpers de dominio y
+ * los pocos métodos a la medida (ventas, reportes, cobros).
  */
 import { supabase } from "./supabaseClient";
+import { createResource, run } from "./supabaseResource";
 
 // ─── helpers compartidos ──────────────────────────────────────────────────────
 
@@ -23,6 +28,9 @@ function daysSince(dateStr) {
 }
 function initialsFromName(name) {
   return (name || "").split(/\s+/).filter(Boolean).map((w) => w[0]).join("").slice(0, 2).toUpperCase();
+}
+function formatDateEs(dateStr) {
+  return new Date(dateStr).toLocaleDateString("es-MX", { day: "numeric", month: "short", year: "numeric" });
 }
 
 // ─── Products ─────────────────────────────────────────────────────────────────
@@ -51,58 +59,40 @@ function mapProductRow(row) {
   };
 }
 
-export const ProductsAPI = {
-  async list() {
-    const { data, error } = await supabase.from("products").select("*").order("created_at", { ascending: true });
-    if (error) throw error;
-    return (data || []).map(mapProductRow);
-  },
-
-  async create(data) {
-    const idname = `${slugify(data.name)}-${randomSuffix()}`;
-    const emoji = CATEGORY_EMOJI[data.cat] || "🏷️";
-    const { data: row, error } = await supabase
-      .from("products")
-      .insert({
-        idname,
-        name: data.name,
-        venta: data.price,
-        stk: data.stock ?? null,
-        cat: data.cat,
-        emoji,
-        img: data.imgSrc || null,
-      })
-      .select()
-      .single();
-    if (error) throw error;
-    return { product: mapProductRow(row) };
-  },
-
-  async update(id, changes) {
+const products = createResource({
+  table: "products",
+  pk: "idname",
+  order: { column: "created_at", ascending: true },
+  toRow: mapProductRow,
+  toInsert: (d) => ({
+    idname: `${slugify(d.name)}-${randomSuffix()}`,
+    name: d.name,
+    venta: d.price,
+    stk: d.stock ?? null,
+    cat: d.cat,
+    emoji: CATEGORY_EMOJI[d.cat] || "🏷️",
+    img: d.imgSrc || null,
+  }),
+  toUpdate: (c) => {
     const patch = {};
-    if (changes.name !== undefined) patch.name = changes.name;
-    if (changes.price !== undefined) patch.venta = changes.price;
-    if (changes.stock !== undefined) patch.stk = changes.stock;
-    if (changes.cat !== undefined) patch.cat = changes.cat;
-    if (changes.imgSrc !== undefined) patch.img = changes.imgSrc;
-    const { data: row, error } = await supabase.from("products").update(patch).eq("idname", id).select().single();
-    if (error) throw error;
-    return { product: mapProductRow(row) };
+    if (c.name !== undefined) patch.name = c.name;
+    if (c.price !== undefined) patch.venta = c.price;
+    if (c.stock !== undefined) patch.stk = c.stock;
+    if (c.cat !== undefined) patch.cat = c.cat;
+    if (c.imgSrc !== undefined) patch.img = c.imgSrc;
+    return patch;
   },
+});
 
-  async delete(id) {
-    const { error } = await supabase.from("products").delete().eq("idname", id);
-    if (error) throw error;
-    return { success: true };
-  },
-
-  async adjustStock(id, delta) {
-    const { data: current, error: e1 } = await supabase.from("products").select("stk").eq("idname", id).single();
-    if (e1) throw e1;
-    const newStock = Math.max(0, (current.stk ?? 0) + delta);
-    const { data: row, error } = await supabase.from("products").update({ stk: newStock }).eq("idname", id).select().single();
-    if (error) throw error;
-    return { product: mapProductRow(row) };
+export const ProductsAPI = {
+  list: () => products.list(),
+  create: async (data) => ({ product: await products.create(data) }),
+  update: async (id, changes) => ({ product: await products.update(id, changes) }),
+  delete: (id) => products.remove(id),
+  adjustStock: async (id, delta) => {
+    const current = await run(supabase.from("products").select("stk").eq("idname", id).single());
+    const stock = Math.max(0, (current.stk ?? 0) + delta);
+    return { product: await products.update(id, { stock }) };
   },
 };
 
@@ -120,26 +110,21 @@ function mapSaleRow(row) {
   };
 }
 
-export const SalesAPI = {
-  async create(sale) {
-    const total = sale.items.reduce((s, i) => s + i.price * i.qty, 0);
-    const { data, error } = await supabase
-      .from("sales")
-      .insert({ productos: sale.items, vendedor: sale.operatorId, metodo_pago: sale.method, total })
-      .select()
-      .single();
-    if (error) throw error;
-    return { sale: mapSaleRow(data) };
-  },
+const sales = createResource({
+  table: "sales",
+  order: { column: "fecha", ascending: false },
+  toRow: mapSaleRow,
+  toInsert: (sale) => ({
+    productos: sale.items,
+    vendedor: sale.operatorId,
+    metodo_pago: sale.method,
+    total: sale.items.reduce((s, i) => s + i.price * i.qty, 0),
+  }),
+});
 
-  async list(page = 1, limit = 50) {
-    const from = (page - 1) * limit;
-    const to = from + limit - 1;
-    const { data, error } = await supabase
-      .from("sales").select("*").order("fecha", { ascending: false }).range(from, to);
-    if (error) throw error;
-    return (data || []).map(mapSaleRow);
-  },
+export const SalesAPI = {
+  create: async (sale) => ({ sale: await sales.create(sale) }),
+  list: (page = 1, limit = 50) => sales.list({ page, limit }),
 };
 
 // ─── Tickets ──────────────────────────────────────────────────────────────────
@@ -166,35 +151,26 @@ function mapTicketRow(row) {
   };
 }
 
+const tickets = createResource({
+  table: "tickets",
+  order: { column: "created_at", ascending: false },
+  toRow: mapTicketRow,
+  toInsert: (t) => ({
+    items: t.items,
+    client: t.client || null,
+    mesa: t.mesa || null,
+    note: t.note || null,
+    saved_by: t.savedBy,
+    total: t.total,
+  }),
+});
+
 export const TicketsAPI = {
-  async list() {
-    const { data, error } = await supabase.from("tickets").select("*").order("created_at", { ascending: false });
-    if (error) throw error;
-    return (data || []).map(mapTicketRow);
-  },
-  async save(ticketData) {
-    const { data, error } = await supabase.from("tickets").insert({
-      items: ticketData.items,
-      client: ticketData.client || null,
-      mesa: ticketData.mesa || null,
-      note: ticketData.note || null,
-      saved_by: ticketData.savedBy,
-      total: ticketData.total,
-    }).select().single();
-    if (error) throw error;
-    return { ticket: mapTicketRow(data) };
-  },
+  list: () => tickets.list(),
+  save: async (ticketData) => ({ ticket: await tickets.create(ticketData) }),
   // Mismo comportamiento original: cobrar solo elimina el ticket, no crea una venta.
-  async charge(id, _payment) {
-    const { error } = await supabase.from("tickets").delete().eq("id", id);
-    if (error) throw error;
-    return { success: true };
-  },
-  async delete(id) {
-    const { error } = await supabase.from("tickets").delete().eq("id", id);
-    if (error) throw error;
-    return { success: true };
-  },
+  charge: (id, _payment) => tickets.remove(id),
+  delete: (id) => tickets.remove(id),
 };
 
 // ─── Deudores ─────────────────────────────────────────────────────────────────
@@ -218,41 +194,38 @@ function mapDeudorRow(row) {
   };
 }
 
+const deudores = createResource({
+  table: "deudores",
+  order: { column: "created_at", ascending: false },
+  toRow: mapDeudorRow,
+  toInsert: (d) => ({
+    name: d.name,
+    phone: d.phone || null,
+    concept: d.concept || null,
+    amount: d.amount,
+  }),
+  toUpdate: (c) => {
+    const patch = {};
+    if (c.amount !== undefined) patch.amount = c.amount;
+    return patch;
+  },
+});
+
 export const DeudoresAPI = {
-  async list() {
-    const { data, error } = await supabase.from("deudores").select("*").order("created_at", { ascending: false });
-    if (error) throw error;
-    return (data || []).map(mapDeudorRow);
-  },
-  async create(data) {
-    const { data: row, error } = await supabase.from("deudores").insert({
-      name: data.name, phone: data.phone || null, concept: data.concept || null, amount: data.amount,
-    }).select().single();
-    if (error) throw error;
-    return { debtor: mapDeudorRow(row) };
-  },
-  async pay(id, amount) {
-    const { data: current, error: e1 } = await supabase.from("deudores").select("amount").eq("id", id).single();
-    if (e1) throw e1;
+  list: () => deudores.list(),
+  create: async (data) => ({ debtor: await deudores.create(data) }),
+  pay: async (id, amount) => {
+    const current = await run(supabase.from("deudores").select("amount").eq("id", id).single());
     const newAmount = Math.max(0, Number(current.amount) - amount);
-    const { data: row, error } = await supabase.from("deudores").update({ amount: newAmount }).eq("id", id).select().single();
-    if (error) throw error;
-    return { debtor: mapDeudorRow(row) };
+    return { debtor: await deudores.update(id, { amount: newAmount }) };
   },
-  async delete(id) {
-    const { error } = await supabase.from("deudores").delete().eq("id", id);
-    if (error) throw error;
-    return { success: true };
-  },
+  delete: (id) => deudores.remove(id),
 };
 
 // ─── Gastos ───────────────────────────────────────────────────────────────────
 
 const OPERATOR_NAMES = { AD: "Admin", ML: "María", JR: "José" };
 
-function formatDateEs(dateStr) {
-  return new Date(dateStr).toLocaleDateString("es-MX", { day: "numeric", month: "short", year: "numeric" });
-}
 function mapGastoRow(row) {
   const initials = row.registrado_por || "AD";
   return {
@@ -266,29 +239,24 @@ function mapGastoRow(row) {
   };
 }
 
+const gastos = createResource({
+  table: "gastos",
+  order: { column: "created_at", ascending: false },
+  toRow: mapGastoRow,
+  toInsert: (d) => ({
+    producto: d.desc,
+    precio: d.amount,
+    cat: d.cat,
+    nota: d.note || null,
+    registrado_por: d.operator,
+    fecha: formatDateEs(new Date().toISOString()),
+  }),
+});
+
 export const GastosAPI = {
-  async list() {
-    const { data, error } = await supabase.from("gastos").select("*").order("created_at", { ascending: false });
-    if (error) throw error;
-    return (data || []).map(mapGastoRow);
-  },
-  async create(data) {
-    const { data: row, error } = await supabase.from("gastos").insert({
-      producto: data.desc,
-      precio: data.amount,
-      cat: data.cat,
-      nota: data.note || null,
-      registrado_por: data.operator,
-      fecha: formatDateEs(new Date().toISOString()),
-    }).select().single();
-    if (error) throw error;
-    return { expense: mapGastoRow(row) };
-  },
-  async delete(id) {
-    const { error } = await supabase.from("gastos").delete().eq("id", id);
-    if (error) throw error;
-    return { success: true };
-  },
+  list: () => gastos.list(),
+  create: async (data) => ({ expense: await gastos.create(data) }),
+  delete: (id) => gastos.remove(id),
 };
 
 // ─── Reports ──────────────────────────────────────────────────────────────────
@@ -328,38 +296,34 @@ function buildPaymentDistribution(sales) {
 export const ReportsAPI = {
   async summary(period = "Esta semana") {
     const { start, end } = getDateRange(period);
-    const [salesRes, gastosRes, deudoresRes] = await Promise.all([
-      supabase.from("sales").select("*").gte("fecha", start.toISOString()).lte("fecha", end.toISOString()),
-      supabase.from("gastos").select("*").gte("created_at", start.toISOString()).lte("created_at", end.toISOString()),
-      supabase.from("deudores").select("*"),
+    const [salesData, gastosData, deudoresData] = await Promise.all([
+      run(supabase.from("sales").select("*").gte("fecha", start.toISOString()).lte("fecha", end.toISOString())),
+      run(supabase.from("gastos").select("*").gte("created_at", start.toISOString()).lte("created_at", end.toISOString())),
+      run(supabase.from("deudores").select("*")),
     ]);
-    if (salesRes.error) throw salesRes.error;
-    if (gastosRes.error) throw gastosRes.error;
-    if (deudoresRes.error) throw deudoresRes.error;
 
-    const sales = salesRes.data || [], gastos = gastosRes.data || [], deudores = deudoresRes.data || [];
-    const ventasTotal = sales.reduce((s, r) => s + Number(r.total), 0);
-    const gastosTotal = gastos.reduce((s, r) => s + Number(r.precio), 0);
-    const deudaTotal = deudores.reduce((s, r) => s + Number(r.amount), 0);
+    const salesRows = salesData || [], gastosRows = gastosData || [], deudoresRows = deudoresData || [];
+    const ventasTotal = salesRows.reduce((s, r) => s + Number(r.total), 0);
+    const gastosTotal = gastosRows.reduce((s, r) => s + Number(r.precio), 0);
+    const deudaTotal = deudoresRows.reduce((s, r) => s + Number(r.amount), 0);
 
     return {
       kpis: {
         ventas: ventasTotal,
-        transacciones: sales.length,
+        transacciones: salesRows.length,
         gastos: gastosTotal,
         gananciaNeta: ventasTotal - gastosTotal,
         deudaPendiente: deudaTotal,
-        deudoresCount: deudores.length,
+        deudoresCount: deudoresRows.length,
       },
-      weeklySales: buildWeeklySeries(sales, start, end),
-      paymentMethods: buildPaymentDistribution(sales),
+      weeklySales: buildWeeklySeries(salesRows, start, end),
+      paymentMethods: buildPaymentDistribution(salesRows),
     };
   },
 
   async deudores() {
-    const { data, error } = await supabase.from("deudores").select("*").order("created_at", { ascending: false });
-    if (error) throw error;
-    return (data || []).map((row) => {
+    const rows = await run(supabase.from("deudores").select("*").order("created_at", { ascending: false }));
+    return (rows || []).map((row) => {
       const days = daysSince(row.created_at);
       return {
         initials: initialsFromName(row.name),
