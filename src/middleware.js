@@ -12,6 +12,7 @@ import { NextResponse } from "next/server";
 
 const ALLOWED_ORIGIN = process.env.NEXTAUTH_URL ?? "http://localhost:3000";
 const IS_PROD        = process.env.NODE_ENV === "production";
+const SUPABASE_URL   = process.env.NEXT_PUBLIC_SUPABASE_URL ?? "";
 
 export function middleware(request) {
   const { pathname } = request.nextUrl;
@@ -60,7 +61,7 @@ export function middleware(request) {
       "style-src   'self' 'unsafe-inline' https://fonts.googleapis.com",
       "font-src    'self' https://fonts.gstatic.com",
       "img-src     'self' data: blob:",
-      "connect-src 'self'",
+      `connect-src 'self'${SUPABASE_URL ? ` ${SUPABASE_URL}` : ""}`,
       "frame-ancestors 'none'",
     ].join("; ")
   );
