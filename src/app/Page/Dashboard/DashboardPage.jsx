@@ -4,9 +4,9 @@ import {
     DeudoresView, TicketsView, InventarioView,
     GastosView, ReportesView,
     ProcesarPagoModal, GuardarTicketModal,
-    ProductThumb, INITIAL_PRODUCTS,
+    ProductThumb,
 } from "./DashboardViewers";
-import { ProductsAPI, SalesAPI, TicketsAPI, AuthAPI } from "@/lib/api.service";
+import { ProductsAPI, SalesAPI, TicketsAPI } from "@/lib/api.service";
 import Image from "next/image";
 
 // ─── Tokens ──────────────────────────────────────────────────────────────────
@@ -16,22 +16,24 @@ const C = {
     text: "#e6edf3", muted: "#8b949e", warn: "#f0ad4e", danger: "#f85149",
 };
 
-const CATS = ["Todos", "Bebidas", "Snacks", "Suplementos", "Servicios", "Ropa"];
-const NAV = [
-    { id: "ventas", icon: "🛒", label: "Ventas", badge: null },
-    { id: "deudores", icon: "👥", label: "Deudores", badge: null },
-    { id: "tickets", icon: "🎫", label: "Tickets", badge: 3 },
-    { id: "inventario", icon: "📦", label: "Inventario", badge: null },
-    { id: "gastos", icon: "📉", label: "Gastos", badge: null },
-    { id: "reportes", icon: "📊", label: "Reportes", badge: null },
+const CATS = ["Todos", "Bebidas", "Snacks", "Suplementos", "Servicios", "Ropa", "Accesorios"];
+const NAV_BASE = [
+    { id: "ventas", icon: "🛒", label: "Ventas" },
+    { id: "deudores", icon: "👥", label: "Deudores" },
+    { id: "tickets", icon: "🎫", label: "Tickets" },
+    { id: "inventario", icon: "📦", label: "Inventario" },
+    { id: "gastos", icon: "📉", label: "Gastos" },
+    { id: "reportes", icon: "📊", label: "Reportes" },
 ];
 
 const av = (color = C.accent, size = 36) => ({ width: size, height: size, borderRadius: "50%", background: color, color: "#0d1117", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 700, fontSize: size * .36, flexShrink: 0 });
 const ni = (active) => ({ display: "flex", alignItems: "center", gap: 10, padding: "10px 16px", cursor: "pointer", borderRadius: active ? 8 : 0, background: active ? `${C.accent}22` : "transparent", color: active ? C.accent : C.muted, borderLeft: active ? `3px solid ${C.accent}` : "3px solid transparent", margin: "0 8px", fontSize: 14, fontWeight: active ? 600 : 400, transition: "all .2s", userSelect: "none" });
 const cb = (active) => ({ padding: "6px 14px", borderRadius: 20, border: `1px solid ${active ? C.accent : C.border}`, background: active ? `${C.accent}22` : "transparent", color: active ? C.accent : C.muted, cursor: "pointer", fontSize: 13, fontWeight: active ? 600 : 400, whiteSpace: "nowrap" });
+const catIcon = (c) => c === "Todos" ? "🏷️" : c === "Bebidas" ? "🥤" : c === "Snacks" ? "🍿" : c === "Suplementos" ? "💊" : c === "Servicios" ? "🏋️" : c === "Ropa" ? "👕" : c === "Accesorios" ? "📦" : "🏷️";
 
 // ─── Sidebar ──────────────────────────────────────────────────────────────────
-function Sidebar({ user, activeNav, onNav, onLogout }) {
+function Sidebar({ user, activeNav, onNav, onLogout, ticketsCount, lowStockCount }) {
+    const nav = NAV_BASE.map((n) => ({ ...n, badge: n.id === "tickets" && ticketsCount > 0 ? ticketsCount : null }));
     return (
         <aside style={{ width: 196, minWidth: 196, background: C.sidebar, borderRight: `1px solid ${C.border}`, display: "flex", flexDirection: "column", padding: "16px 0", flexShrink: 0 }}>
             <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "0 16px 16px", borderBottom: `1px solid ${C.border}`, marginBottom: 12 }}>
@@ -41,17 +43,19 @@ function Sidebar({ user, activeNav, onNav, onLogout }) {
                 <div style={av()}>{user.name[0]}</div>
                 <div><div style={{ fontSize: 13, fontWeight: 600 }}>{user.name}</div><div style={{ fontSize: 11, color: C.muted, textTransform: "capitalize" }}>{user.role}</div></div>
             </div>
-            {NAV.map(n => (
+            {nav.map(n => (
                 <div key={n.id} style={ni(activeNav === n.id)} onClick={() => onNav(n.id)}>
                     <span>{n.icon}</span><span>{n.label}</span>
                     {n.badge && <span style={{ background: C.accent, color: "#0d1117", borderRadius: "50%", width: 20, height: 20, fontSize: 11, fontWeight: 700, display: "flex", alignItems: "center", justifyContent: "center", marginLeft: "auto" }}>{n.badge}</span>}
                 </div>
             ))}
             <div style={{ flex: 1 }} />
-            <div style={{ background: "#2d1e00", border: `1px solid ${C.warn}44`, borderRadius: 10, padding: "12px 14px", margin: "auto 16px 16px", fontSize: 12, color: C.warn }}>
-                <div style={{ fontWeight: 600, marginBottom: 2 }}>⚠️ Alertas activas</div>
-                <div>3 productos con bajo stock</div>
-            </div>
+            {lowStockCount > 0 && (
+                <div style={{ background: "#2d1e00", border: `1px solid ${C.warn}44`, borderRadius: 10, padding: "12px 14px", margin: "auto 16px 16px", fontSize: 12, color: C.warn }}>
+                    <div style={{ fontWeight: 600, marginBottom: 2 }}>⚠️ Alertas activas</div>
+                    <div>{lowStockCount} producto{lowStockCount === 1 ? "" : "s"} con bajo stock</div>
+                </div>
+            )}
             <div style={{ padding: "0 16px", marginBottom: 8 }}>
                 <div style={{ ...ni(false), color: C.muted }}>⚙️ Configuración</div>
                 <div style={{ ...ni(false), color: C.danger, cursor: "pointer" }} onClick={onLogout}>🚪 Cerrar sesión</div>
@@ -84,7 +88,6 @@ function VentasView({ user, products, cart, setCart }) {
     const iva = subtotal * 0.16;
     const total = subtotal + iva;
     const now = new Date();
-    const ci = (c) => c === "Todos" ? "🏷️" : c === "Bebidas" ? "🥤" : c === "Snacks" ? "🍿" : c === "Suplementos" ? "💊" : c === "Servicios" ? "🏋️" : "👕";
 
     return (
         <div style={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden" }}>
@@ -96,20 +99,25 @@ function VentasView({ user, products, cart, setCart }) {
                         method,
                         operatorId: user.id,
                     });
-                } catch { }  // venta se registra localmente aunque falle la API
+                } catch (err) {
+                    console.error("Error al registrar venta:", err);
+                }
                 setToast({ method, total });
                 setCart([]);
             }} />}
             {showGuardar && <GuardarTicketModal onClose={() => setShowGuardar(false)} onSave={async (ticketData) => {
                 try {
                     await TicketsAPI.save({
-                        items: cart.map(i => ({ id: i.id, qty: i.qty, price: i.price })),
+                        items: cart,
                         client: ticketData.client,
                         mesa: ticketData.mesa,
                         note: ticketData.note,
                         savedBy: user.name,
+                        total: subtotal,
                     });
-                } catch { }
+                } catch (err) {
+                    console.error("Error al guardar ticket:", err);
+                }
                 setCart([]);
             }} />}
 
@@ -145,7 +153,7 @@ function VentasView({ user, products, cart, setCart }) {
                                 placeholder="Buscar producto..." value={search} onChange={e => setSearch(e.target.value)} />
                         </div>
                         <div style={{ display: "flex", gap: 8, marginTop: 12, flexWrap: "wrap" }}>
-                            {CATS.map(c => <button key={c} style={cb(cat === c)} onClick={() => setCat(c)}>{ci(c)} {c}</button>)}
+                            {CATS.map(c => <button key={c} style={cb(cat === c)} onClick={() => setCat(c)}>{catIcon(c)} {c}</button>)}
                         </div>
                     </div>
 
@@ -257,7 +265,6 @@ function StoreView({ user, products, onLogout }) {
     const filtered = useMemo(() => products.filter(p => (cat === "Todos" || p.cat === cat) && p.name.toLowerCase().includes(search.toLowerCase())), [cat, search, products]);
     const addToCart = (p) => setCart(prev => { const ex = prev.find(i => i.id === p.id); return ex ? prev.map(i => i.id === p.id ? { ...i, qty: i.qty + 1 } : i) : [...prev, { ...p, qty: 1 }]; });
     const cartTotal = cart.reduce((s, i) => s + i.price * i.qty, 0);
-    const ci = (c) => c === "Todos" ? "🏷️" : c === "Bebidas" ? "🥤" : c === "Snacks" ? "🍿" : c === "Suplementos" ? "💊" : c === "Servicios" ? "🏋️" : "👕";
 
     return (
         <div style={{ minHeight: "100vh", background: C.bg, color: C.text, fontFamily: "'Segoe UI',system-ui,sans-serif" }}>
@@ -288,7 +295,7 @@ function StoreView({ user, products, onLogout }) {
                             placeholder="Buscar productos..." value={search} onChange={e => setSearch(e.target.value)} />
                     </div>
                     <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 20 }}>
-                        {CATS.map(c => <button key={c} style={cb(cat === c)} onClick={() => setCat(c)}>{ci(c)} {c}</button>)}
+                        {CATS.map(c => <button key={c} style={cb(cat === c)} onClick={() => setCat(c)}>{catIcon(c)} {c}</button>)}
                     </div>
                     <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(220px,1fr))", gap: 16 }}>
                         {filtered.map(p => (
@@ -349,18 +356,19 @@ function StoreView({ user, products, onLogout }) {
     );
 }
 
-// ─── POSView — shared products + lifted cart ──────────────────────────────────
-function POSView({ user, onLogout }) {
+// ─── POSView — shared products/tickets so every view stays in sync ───────────
+function POSView({ user, products, setProducts, onLogout }) {
     const [activeNav, setActiveNav] = useState("ventas");
     const [cart, setCart] = useState([]);
-    // Shared products so Inventario and Ventas are always in sync
-    const [products, setProducts] = useState(INITIAL_PRODUCTS);  // datos iniciales demo
+    const [tickets, setTickets] = useState([]);
 
     useEffect(() => {
-        ProductsAPI.list()
-            .then(data => setProducts(data))
-            .catch(() => { });  // mantiene INITIAL_PRODUCTS si falla
+        TicketsAPI.list()
+            .then(setTickets)
+            .catch((err) => console.error("Error al cargar tickets:", err));
     }, []);
+
+    const lowStockCount = products.filter(p => p.status === "Bajo").length;
 
     const handleRecover = (recoveredCart) => {
         setCart(recoveredCart);
@@ -371,7 +379,7 @@ function POSView({ user, onLogout }) {
         switch (activeNav) {
             case "ventas": return <VentasView user={user} products={products} cart={cart} setCart={setCart} />;
             case "deudores": return <DeudoresView user={user} />;
-            case "tickets": return <TicketsView user={user} onRecover={handleRecover} />;
+            case "tickets": return <TicketsView user={user} tickets={tickets} setTickets={setTickets} onRecover={handleRecover} />;
             case "inventario": return <InventarioView user={user} products={products} setProducts={setProducts} />;
             case "gastos": return <GastosView user={user} />;
             case "reportes": return <ReportesView user={user} />;
@@ -381,7 +389,7 @@ function POSView({ user, onLogout }) {
 
     return (
         <div style={{ display: "flex", height: "100vh", background: C.bg, color: C.text, fontFamily: "'Segoe UI',system-ui,sans-serif", overflow: "hidden" }}>
-            <Sidebar user={user} activeNav={activeNav} onNav={setActiveNav} onLogout={onLogout} />
+            <Sidebar user={user} activeNav={activeNav} onNav={setActiveNav} onLogout={onLogout} ticketsCount={tickets.length} lowStockCount={lowStockCount} />
             <main style={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden" }}>
                 {renderView()}
             </main>
@@ -391,10 +399,17 @@ function POSView({ user, onLogout }) {
 
 // ─── Export ───────────────────────────────────────────────────────────────────
 export default function DashboardPage({ user, onLogout }) {
-    // Shared products at top level so both POS and Store see the same catalog
-    const [products, setProducts] = useState(INITIAL_PRODUCTS);
+    // Catálogo compartido entre POS (admin/vendedor) y la tienda (cliente)
+    const [products, setProducts] = useState([]);
+
+    useEffect(() => {
+        ProductsAPI.list()
+            .then(setProducts)
+            .catch((err) => console.error("Error al cargar productos:", err));
+    }, []);
+
     const isOperator = user?.role === "admin" || user?.role === "vendedor";
     return isOperator
-        ? <POSView user={user} onLogout={onLogout} />
+        ? <POSView user={user} products={products} setProducts={setProducts} onLogout={onLogout} />
         : <StoreView user={user} products={products} onLogout={onLogout} />;
 }
