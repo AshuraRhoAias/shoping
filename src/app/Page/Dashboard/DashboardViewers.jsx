@@ -2,112 +2,88 @@
 import { useState, useEffect, useRef } from "react";
 import { DeudoresAPI, TicketsAPI, ProductsAPI, GastosAPI, ReportsAPI } from "@/lib/api.service";
 import Image from "next/image";
+import "./dashboard.css";
 
 // ═══════════════════════════════════════════════════════════════
-// DESIGN TOKENS
+// Colores dinámicos — solo los valores que se pasan como CSS var
+// (--c / --bg-c). El resto del estilo vive en dashboard.css.
 // ═══════════════════════════════════════════════════════════════
-const C = {
-  bg: "#0d1117", sidebar: "#010409", card: "#161b22", cardHover: "#1c2128",
-  border: "#21262d", accent: "#00d4aa", accentEnd: "#00b894",
-  text: "#e6edf3", muted: "#8b949e", warn: "#f0ad4e", danger: "#f85149",
-  green: "#3fb950", purple: "#bc8cff", blue: "#58a6ff", orange: "#ffa657",
+const COLORS = {
+  accent: "#00d4aa", warn: "#f0ad4e", danger: "#f85149",
+  green: "#3fb950", purple: "#bc8cff", blue: "#58a6ff", orange: "#ffa657", muted: "#8b949e",
 };
-
-if (typeof document !== "undefined" && !document.getElementById("feh-kf")) {
-  const s = document.createElement("style");
-  s.id = "feh-kf";
-  s.textContent = `
-    @keyframes fadeUp  { from{opacity:0;transform:translateY(14px)} to{opacity:1;transform:translateY(0)} }
-    @keyframes scaleIn { from{opacity:0;transform:scale(.95)} to{opacity:1;transform:scale(1)} }
-    .feh-fade  { animation:fadeUp .35s ease both; }
-    .feh-hover:hover { background:${C.cardHover} !important; }
-  `;
-  document.head.appendChild(s);
-}
 
 // ═══════════════════════════════════════════════════════════════
 // PRIMITIVES
 // ═══════════════════════════════════════════════════════════════
-export function Avatar({ initials, color = C.accent, size = 36 }) {
-  return <div style={{ width: size, height: size, borderRadius: "50%", background: color, color: "#0d1117", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 700, fontSize: size * .36, flexShrink: 0 }}>{initials}</div>;
+export function Avatar({ initials, color, size = 36 }) {
+  const style = { "--sz": `${size}px` };
+  if (color) style["--bg-c"] = color;
+  return <span className="avatar" style={style}>{initials}</span>;
 }
 
 export function PageHeader({ title, user }) {
   const now = new Date();
   return (
-    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "12px 28px", borderBottom: `1px solid ${C.border}`, background: C.sidebar, flexShrink: 0 }}>
+    <header className="topbar">
       <div>
-        <h2 style={{ margin: 0, fontSize: 20, fontWeight: 700 }}>{title}</h2>
-        <p style={{ margin: 0, fontSize: 12, color: C.muted, textTransform: "capitalize" }}>
-          {now.toLocaleDateString("es-MX", { weekday: "long", day: "numeric", month: "long" })}
-        </p>
+        <h2 className="topbar__title">{title}</h2>
+        <p className="topbar__date">{now.toLocaleDateString("es-MX", { weekday: "long", day: "numeric", month: "long" })}</p>
       </div>
-      <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-        <span style={{ fontSize: 12, color: C.muted }}>📶 💬 {now.toLocaleTimeString("es-MX", { hour: "2-digit", minute: "2-digit" })}</span>
+      <div className="topbar__right">
+        <span className="topbar__clock">📶 💬 {now.toLocaleTimeString("es-MX", { hour: "2-digit", minute: "2-digit" })}</span>
         <Avatar initials={user.name[0]} />
         <div>
-          <div style={{ fontSize: 13, fontWeight: 600 }}>{user.name}</div>
-          <div style={{ fontSize: 11, color: C.accent }}>Operador activo</div>
+          <p className="topbar__meta-name">{user.name}</p>
+          <p className="topbar__meta-role">Operador activo</p>
         </div>
       </div>
-    </div>
+    </header>
   );
 }
 
-export function StatCard({ icon, label, value, sub, color = C.accent, delay = 0 }) {
-  const [v, setV] = useState(false);
-  useEffect(() => { const t = setTimeout(() => setV(true), delay); return () => clearTimeout(t); }, [delay]);
+export function StatCard({ icon, label, value, sub, color = COLORS.accent, delay = 0 }) {
   return (
-    <div style={{ flex: 1, minWidth: 160, background: C.card, border: `1px solid ${C.border}`, borderTop: `3px solid ${color}`, borderRadius: 12, padding: "18px 20px", opacity: v ? 1 : 0, transform: v ? "translateY(0)" : "translateY(12px)", transition: "opacity .4s,transform .4s" }}>
-      <div style={{ fontSize: 12, color: C.muted, marginBottom: 6 }}>{icon} {label}</div>
-      <div style={{ fontSize: 26, fontWeight: 800, color }}>{value}</div>
-      {sub && <div style={{ fontSize: 12, color: C.muted, marginTop: 4 }}>{sub}</div>}
-    </div>
+    <article className="stat-card" style={{ "--c": color, "--d": `${delay}ms` }}>
+      <p className="stat-card__label">{icon} {label}</p>
+      <p className="stat-card__value">{value}</p>
+      {sub && <p className="stat-card__sub">{sub}</p>}
+    </article>
   );
 }
 
-export function ScrollArea({ children, style }) {
-  return <div style={{ flex: 1, overflowY: "auto", padding: "20px 28px", ...style }}>{children}</div>;
+export function ScrollArea({ children }) {
+  return <div className="scroll-area">{children}</div>;
 }
 
-export function SectionLabel({ icon, title, count, color = C.accent }) {
+export function SectionLabel({ icon, title, count, color = COLORS.accent }) {
   return (
-    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10, marginTop: 20 }}>
-      <span style={{ fontSize: 14, fontWeight: 600, color }}>{icon} {title}</span>
-      <span style={{ fontSize: 12, color: C.muted }}>{count}</span>
+    <div className="section-label" style={{ "--c": color }}>
+      <span className="section-label__title">{icon} {title}</span>
+      <span className="section-label__count">{count}</span>
     </div>
   );
 }
 
 export function Btn({ children, onClick, variant = "primary", size = "md", disabled = false }) {
-  const pad = size === "sm" ? "6px 12px" : "10px 18px";
-  const fs = size === "sm" ? 12 : 14;
-  const styles = {
-    primary: { background: `linear-gradient(90deg,${C.accent},${C.accentEnd})`, color: "#0d1117", border: "none" },
-    ghost: { background: C.card, border: `1px solid ${C.border}`, color: C.text },
-    danger: { background: `${C.danger}22`, border: `1px solid ${C.danger}55`, color: C.danger },
-    orange: { background: `linear-gradient(90deg,${C.warn},${C.orange})`, color: "#0d1117", border: "none" },
-  };
-  return (
-    <button onClick={onClick} disabled={disabled} style={{ padding: pad, borderRadius: 8, ...styles[variant], fontWeight: 700, fontSize: fs, cursor: disabled ? "not-allowed" : "pointer", display: "flex", alignItems: "center", gap: 6, opacity: disabled ? .5 : 1, transition: "opacity .2s" }}>
-      {children}
-    </button>
-  );
+  const cls = `btn btn--${variant}${size === "sm" ? " btn--sm" : ""}`;
+  return <button className={cls} onClick={onClick} disabled={disabled}>{children}</button>;
 }
 
+const STATUS_META_BADGE = {
+  "Al Día": { color: COLORS.accent, icon: "✅" },
+  "En Seguimiento": { color: COLORS.warn, icon: "🕐" },
+  "Atrasado": { color: COLORS.orange, icon: "⚠️" },
+  "Crítico": { color: COLORS.danger, icon: "🔴" },
+  "Bajo": { color: COLORS.warn, icon: "⚠️" },
+  "OK": { color: COLORS.green, icon: "✓" },
+  "Agotado": { color: COLORS.danger, icon: "✗" },
+  "Urgente": { color: COLORS.danger, icon: "⚠️" },
+};
+
 export function StatusBadge({ status }) {
-  const map = {
-    "Al Día": { color: C.accent, bg: `${C.accent}22`, icon: "✅" },
-    "En Seguimiento": { color: C.warn, bg: `${C.warn}22`, icon: "🕐" },
-    "Atrasado": { color: C.orange, bg: `${C.orange}22`, icon: "⚠️" },
-    "Crítico": { color: C.danger, bg: `${C.danger}22`, icon: "🔴" },
-    "Bajo": { color: C.warn, bg: `${C.warn}22`, icon: "⚠️" },
-    "OK": { color: C.green, bg: `${C.green}22`, icon: "✓" },
-    "Agotado": { color: C.danger, bg: `${C.danger}22`, icon: "✗" },
-    "Urgente": { color: C.danger, bg: `${C.danger}22`, icon: "⚠️" },
-  };
-  const s = map[status] || { color: C.muted, bg: `${C.muted}22`, icon: "·" };
-  return <span style={{ padding: "3px 10px", borderRadius: 20, fontSize: 11, fontWeight: 600, background: s.bg, color: s.color, border: `1px solid ${s.color}44`, display: "inline-flex", alignItems: "center", gap: 4 }}>{s.icon} {status}</span>;
+  const s = STATUS_META_BADGE[status] || { color: COLORS.muted, icon: "·" };
+  return <span className="badge" style={{ "--c": s.color }}>{s.icon} {status}</span>;
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -115,13 +91,13 @@ export function StatusBadge({ status }) {
 // ═══════════════════════════════════════════════════════════════
 export function Modal({ title, titleIcon, onClose, children, width = 460 }) {
   return (
-    <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,.75)", zIndex: 1000, display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }} onClick={onClose}>
-      <div onClick={e => e.stopPropagation()} style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 16, width: "100%", maxWidth: width, maxHeight: "90vh", overflowY: "auto", boxShadow: "0 32px 80px rgba(0,0,0,.6)", animation: "scaleIn .22s ease" }}>
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "20px 24px", borderBottom: `1px solid ${C.border}`, position: "sticky", top: 0, background: C.card, zIndex: 1 }}>
-          <h3 style={{ margin: 0, fontSize: 18, fontWeight: 700 }}>{titleIcon} {title}</h3>
-          <button onClick={onClose} style={{ background: "none", border: "none", color: C.muted, cursor: "pointer", fontSize: 22, lineHeight: 1, padding: 4 }}>×</button>
-        </div>
-        <div style={{ padding: "20px 24px" }}>{children}</div>
+    <div className="modal-overlay" onClick={onClose}>
+      <div className="modal" style={{ "--w": `${width}px` }} onClick={e => e.stopPropagation()} role="dialog" aria-modal="true">
+        <header className="modal__head">
+          <h3 className="modal__title">{titleIcon} {title}</h3>
+          <button className="modal__close" onClick={onClose} aria-label="Cerrar">×</button>
+        </header>
+        <div className="modal__body">{children}</div>
       </div>
     </div>
   );
@@ -129,25 +105,48 @@ export function Modal({ title, titleIcon, onClose, children, width = 460 }) {
 
 function MInput({ label, placeholder, value, onChange, type = "text", prefix, required }) {
   return (
-    <div style={{ marginBottom: 16 }}>
-      <label style={{ fontSize: 13, color: C.muted, display: "block", marginBottom: 6 }}>
-        {label}{required && <span style={{ color: C.danger }}> *</span>}
-      </label>
-      <div style={{ position: "relative" }}>
-        {prefix && <span style={{ position: "absolute", left: 14, top: "50%", transform: "translateY(-50%)", color: C.muted, fontSize: 13 }}>{prefix}</span>}
-        <input type={type} placeholder={placeholder} value={value} onChange={e => onChange(e.target.value)}
-          style={{ width: "100%", boxSizing: "border-box", background: C.bg, border: `1px solid ${C.border}`, borderRadius: 10, color: C.text, fontSize: 14, padding: `11px 14px 11px ${prefix ? "36px" : "14px"}`, outline: "none" }} />
+    <div className="field">
+      <label className="field__label">{label}{required && <span className="field__req"> *</span>}</label>
+      <div className="field__wrap">
+        {prefix && <span className="field__prefix">{prefix}</span>}
+        <input className={`field__input${prefix ? " field__input--prefixed" : ""}`} type={type} placeholder={placeholder} value={value} onChange={e => onChange(e.target.value)} />
       </div>
     </div>
   );
 }
 
 const OPERATORS = [
-  { initials: "AD", name: "Admin", color: C.accent },
-  { initials: "ML", name: "María", color: "#bc8cff" },
-  { initials: "JR", name: "José", color: "#f0ad4e" },
+  { initials: "AD", name: "Admin", color: COLORS.accent },
+  { initials: "ML", name: "María", color: COLORS.purple },
+  { initials: "JR", name: "José", color: COLORS.warn },
 ];
 const MESAS = ["Mesa 1", "Mesa 2", "Mesa 3", "Mesa 4", "Mesa 5", "Mesa 6", "Mesa 7", "Mostrador", "Para llevar"];
+const PAY_METHODS = [{ id: "Efectivo", icon: "💵" }, { id: "MP / QR", icon: "📱" }, { id: "Tarjeta", icon: "💳" }];
+
+function PayMethodPicker({ method, setMethod }) {
+  return (
+    <div className="pay-methods">
+      {PAY_METHODS.map(m => (
+        <button key={m.id} className={`pay-method${method === m.id ? " pay-method--active" : ""}`} onClick={() => setMethod(m.id)}>
+          <p className="pay-method__icon">{m.icon}</p>{m.id}
+        </button>
+      ))}
+    </div>
+  );
+}
+
+function OperatorPicker({ operator, setOperator }) {
+  return (
+    <div className="operators">
+      {OPERATORS.map(op => (
+        <button key={op.initials} className={`operator${operator === op.initials ? " operator--active" : ""}`} style={{ "--c": op.color }} onClick={() => setOperator(op.initials)}>
+          <Avatar initials={op.initials} size={32} color={op.color} />
+          <p className="operator__name">{op.name}</p>
+        </button>
+      ))}
+    </div>
+  );
+}
 
 // ═══════════════════════════════════════════════════════════════
 // MODALS
@@ -155,31 +154,24 @@ const MESAS = ["Mesa 1", "Mesa 2", "Mesa 3", "Mesa 4", "Mesa 5", "Mesa 6", "Mesa
 export function ProcesarPagoModal({ total, onClose, onConfirm }) {
   const [method, setMethod] = useState("Efectivo");
   const [cash, setCash] = useState("");
-  const methods = [{ id: "Efectivo", icon: "💵" }, { id: "MP / QR", icon: "📱" }, { id: "Tarjeta", icon: "💳" }];
   const cambio = method === "Efectivo" ? Math.max(0, parseFloat(cash || 0) - total) : 0;
   const canConfirm = method !== "Efectivo" || parseFloat(cash || 0) >= total;
   return (
     <Modal title="Procesar Pago" onClose={onClose}>
-      <div style={{ background: C.bg, borderRadius: 12, padding: "16px", textAlign: "center", marginBottom: 20, border: `1px solid ${C.border}` }}>
-        <div style={{ fontSize: 13, color: C.muted, marginBottom: 6 }}>Total a pagar</div>
-        <div style={{ fontSize: 36, fontWeight: 800, color: C.accent }}>${total.toFixed(2)}</div>
+      <div className="amount-box">
+        <p className="amount-box__label">Total a pagar</p>
+        <p className="amount-box__value">${total.toFixed(2)}</p>
       </div>
-      <div style={{ display: "flex", gap: 10, marginBottom: 20 }}>
-        {methods.map(m => (
-          <button key={m.id} onClick={() => setMethod(m.id)} style={{ flex: 1, padding: "12px 8px", borderRadius: 10, border: `2px solid ${method === m.id ? C.accent : C.border}`, background: method === m.id ? `${C.accent}22` : C.bg, color: method === m.id ? C.accent : C.muted, cursor: "pointer", fontWeight: 700, fontSize: 13 }}>
-            <div style={{ fontSize: 20, marginBottom: 4 }}>{m.icon}</div>{m.id}
-          </button>
-        ))}
-      </div>
+      <PayMethodPicker method={method} setMethod={setMethod} />
       {method === "Efectivo" && <MInput label="Efectivo recibido" placeholder="$0.00" value={cash} onChange={setCash} type="number" prefix="$" />}
       {method === "Efectivo" && parseFloat(cash || 0) > 0 && (
-        <div style={{ background: C.bg, border: `1px solid ${C.border}`, borderRadius: 10, padding: "10px 16px", marginBottom: 16, display: "flex", justifyContent: "space-between" }}>
-          <span style={{ color: C.muted }}>Cambio</span>
-          <span style={{ fontWeight: 700, color: cambio > 0 ? C.green : C.text }}>${cambio.toFixed(2)}</span>
+        <div className="change-row">
+          <span className="change-row__label">Cambio</span>
+          <span className={`change-row__value${cambio > 0 ? " change-row__value--positive" : ""}`}>${cambio.toFixed(2)}</span>
         </div>
       )}
-      {method === "MP / QR" && <div style={{ textAlign: "center", padding: "24px 0 16px", color: C.muted }}>📱 Escanea el código QR con Mercado Pago</div>}
-      {method === "Tarjeta" && <div style={{ textAlign: "center", padding: "24px 0 16px", color: C.muted }}>💳 Acerca la tarjeta al lector</div>}
+      {method === "MP / QR" && <p className="pay-hint">📱 Escanea el código QR con Mercado Pago</p>}
+      {method === "Tarjeta" && <p className="pay-hint">💳 Acerca la tarjeta al lector</p>}
       <Btn disabled={!canConfirm} onClick={() => { onConfirm(method); onClose(); }}>✅ Confirmar Pago</Btn>
     </Modal>
   );
@@ -192,11 +184,11 @@ export function GuardarTicketModal({ onClose, onSave }) {
   return (
     <Modal title="Guardar Ticket" titleIcon="📋" onClose={onClose}>
       <MInput label="Nombre del cliente (opcional)" placeholder="Ej. Carlos M., Sandra..." value={client} onChange={setClient} />
-      <div style={{ marginBottom: 16 }}>
-        <label style={{ fontSize: 13, color: C.muted, display: "block", marginBottom: 10 }}>Mesa / Ubicación</label>
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 8 }}>
+      <div className="field">
+        <label className="field__label">Mesa / Ubicación</label>
+        <div className="mesa-grid">
           {MESAS.map(m => (
-            <button key={m} onClick={() => setMesa(m)} style={{ padding: "9px 6px", borderRadius: 8, border: `1px solid ${mesa === m ? C.accent : C.border}`, background: mesa === m ? `${C.accent}22` : C.bg, color: mesa === m ? C.accent : C.text, cursor: "pointer", fontSize: 13, fontWeight: mesa === m ? 700 : 400 }}>{m}</button>
+            <button key={m} className={`mesa${mesa === m ? " mesa--active" : ""}`} onClick={() => setMesa(m)}>{m}</button>
           ))}
         </div>
       </div>
@@ -218,9 +210,9 @@ export function NuevoDeudorModal({ user, onClose, onSave }) {
       <MInput label="Teléfono" placeholder="555-0000" value={phone} onChange={setPhone} />
       <MInput label="Concepto" required placeholder="Ej. Mensualidad Gym - Junio" value={concept} onChange={setConcept} />
       <MInput label="Monto" required placeholder="0.00" value={amount} onChange={setAmount} type="number" prefix="$" />
-      <div style={{ background: C.bg, border: `1px solid ${C.border}`, borderRadius: 10, padding: "10px 14px", marginBottom: 16, display: "flex", alignItems: "center", gap: 10 }}>
+      <div className="reg-by">
         <Avatar initials={user.name.slice(0, 2).toUpperCase()} size={28} />
-        <span style={{ fontSize: 13, color: C.muted }}>Registrado por: <strong style={{ color: C.text }}>{user.name}</strong></span>
+        <span className="reg-by__text">Registrado por: <strong>{user.name}</strong></span>
       </div>
       <Btn disabled={!valid} onClick={() => { onSave({ name, phone, concept, amount: parseFloat(amount) }); onClose(); }}>Registrar Deudor</Btn>
     </Modal>
@@ -231,50 +223,36 @@ export function CobrarTicketModal({ ticket, onClose, onConfirm }) {
   const [method, setMethod] = useState("Efectivo");
   const [cash, setCash] = useState("");
   const [operator, setOperator] = useState("AD");
-  const methods = [{ id: "Efectivo", icon: "💵" }, { id: "MP / QR", icon: "📱" }, { id: "Tarjeta", icon: "💳" }];
   const cambio = method === "Efectivo" ? Math.max(0, parseFloat(cash || 0) - ticket.total) : 0;
   const canConfirm = method !== "Efectivo" || parseFloat(cash || 0) >= ticket.total;
   return (
     <Modal title="Cobrar Ticket" onClose={onClose}>
-      <div style={{ fontSize: 13, color: C.muted, marginBottom: 16 }}>{ticket.location} — {ticket.client || "Sin cliente"}</div>
-      <div style={{ background: C.bg, border: `1px solid ${C.border}`, borderRadius: 12, padding: 16, marginBottom: 16, textAlign: "center" }}>
-        <div style={{ fontSize: 12, color: C.muted, marginBottom: 4 }}>Total a cobrar</div>
-        <div style={{ fontSize: 34, fontWeight: 800, color: C.accent }}>${ticket.total.toFixed(2)}</div>
+      <p className="stat-card__sub" style={{ marginBottom: 16 }}>{ticket.location} — {ticket.client || "Sin cliente"}</p>
+      <div className="amount-box">
+        <p className="amount-box__label">Total a cobrar</p>
+        <p className="amount-box__value">${ticket.total.toFixed(2)}</p>
       </div>
-      <div style={{ background: C.bg, border: `1px solid ${C.border}`, borderRadius: 10, padding: "12px 16px", marginBottom: 16 }}>
+      <div className="ticket-items">
         {ticket.items.map((item, i) => (
-          <div key={i} style={{ display: "flex", justifyContent: "space-between", fontSize: 13, marginBottom: i < ticket.items.length - 1 ? 8 : 0 }}>
-            <span>{item.name}</span><span style={{ color: C.muted }}>${item.price}.00</span>
+          <div key={i} className="ticket-items__row">
+            <span>{item.name}</span><span className="ticket-items__price">${item.price}.00</span>
           </div>
         ))}
-        <div style={{ marginTop: 10, paddingTop: 8, borderTop: `1px solid ${C.border}`, display: "flex", alignItems: "center", gap: 8, fontSize: 12, color: C.muted }}>
-          <Avatar initials={ticket.savedBy[0]} size={20} color={C.blue} /> Guardado por {ticket.savedBy}
+        <div className="ticket-items__saved">
+          <Avatar initials={ticket.savedBy[0]} size={20} color={COLORS.blue} /> Guardado por {ticket.savedBy}
         </div>
       </div>
-      <div style={{ display: "flex", gap: 8, marginBottom: 16 }}>
-        {methods.map(m => (
-          <button key={m.id} onClick={() => setMethod(m.id)} style={{ flex: 1, padding: "10px 6px", borderRadius: 10, border: `2px solid ${method === m.id ? C.accent : C.border}`, background: method === m.id ? `${C.accent}22` : C.bg, color: method === m.id ? C.accent : C.muted, cursor: "pointer", fontWeight: 700, fontSize: 12 }}>
-            <div style={{ fontSize: 18, marginBottom: 2 }}>{m.icon}</div>{m.id}
-          </button>
-        ))}
-      </div>
+      <PayMethodPicker method={method} setMethod={setMethod} />
       {method === "Efectivo" && <MInput label="Efectivo recibido" placeholder="$0.00" value={cash} onChange={setCash} type="number" prefix="$" />}
       {method === "Efectivo" && parseFloat(cash || 0) > 0 && (
-        <div style={{ background: C.bg, border: `1px solid ${C.border}`, borderRadius: 10, padding: "10px 16px", marginBottom: 16, display: "flex", justifyContent: "space-between" }}>
-          <span style={{ color: C.muted }}>Cambio</span>
-          <span style={{ fontWeight: 700, color: cambio > 0 ? C.green : C.text }}>${cambio.toFixed(2)}</span>
+        <div className="change-row">
+          <span className="change-row__label">Cambio</span>
+          <span className={`change-row__value${cambio > 0 ? " change-row__value--positive" : ""}`}>${cambio.toFixed(2)}</span>
         </div>
       )}
-      <div style={{ marginBottom: 20 }}>
-        <label style={{ fontSize: 13, color: C.muted, display: "block", marginBottom: 10 }}>Cobrado por</label>
-        <div style={{ display: "flex", gap: 10 }}>
-          {OPERATORS.map(op => (
-            <button key={op.initials} onClick={() => setOperator(op.initials)} style={{ flex: 1, padding: "10px 8px", borderRadius: 10, border: `2px solid ${operator === op.initials ? op.color : C.border}`, background: operator === op.initials ? `${op.color}22` : C.bg, cursor: "pointer", textAlign: "center" }}>
-              <Avatar initials={op.initials} size={32} color={op.color} />
-              <div style={{ fontSize: 12, marginTop: 6, color: operator === op.initials ? op.color : C.muted, fontWeight: operator === op.initials ? 700 : 400 }}>{op.name}</div>
-            </button>
-          ))}
-        </div>
+      <div className="field">
+        <label className="field__label">Cobrado por</label>
+        <OperatorPicker operator={operator} setOperator={setOperator} />
       </div>
       <Btn disabled={!canConfirm} onClick={() => { onConfirm({ method, operator }); onClose(); }}>✅ Confirmar Cobro</Btn>
     </Modal>
@@ -294,23 +272,16 @@ export function RegistrarGastoModal({ onClose, onSave }) {
     <Modal title="Registrar Gasto" titleIcon="📉" onClose={onClose}>
       <MInput label="Descripción" required placeholder="Ej. Renta local mayo, pago luz..." value={desc} onChange={setDesc} />
       <MInput label="Monto" required placeholder="0.00" value={amount} onChange={setAmount} type="number" prefix="$" />
-      <div style={{ marginBottom: 16 }}>
-        <label style={{ fontSize: 13, color: C.muted, display: "block", marginBottom: 6 }}>Categoría</label>
-        <select value={cat} onChange={e => setCat(e.target.value)} style={{ width: "100%", background: C.bg, border: `1px solid ${C.border}`, borderRadius: 10, color: C.text, fontSize: 14, padding: "11px 14px", outline: "none" }}>
+      <div className="field">
+        <label className="field__label">Categoría</label>
+        <select className="field__select" value={cat} onChange={e => setCat(e.target.value)}>
           {GASTO_CATS_LIST.map(c => <option key={c} value={c}>{c}</option>)}
         </select>
       </div>
       <MInput label="Nota (opcional)" placeholder="Información adicional..." value={note} onChange={setNote} />
-      <div style={{ marginBottom: 20 }}>
-        <label style={{ fontSize: 13, color: C.muted, display: "block", marginBottom: 10 }}>Registrado por</label>
-        <div style={{ display: "flex", gap: 10 }}>
-          {OPERATORS.map(op => (
-            <button key={op.initials} onClick={() => setOperator(op.initials)} style={{ flex: 1, padding: "10px 8px", borderRadius: 10, border: `2px solid ${operator === op.initials ? op.color : C.border}`, background: operator === op.initials ? `${op.color}22` : C.bg, cursor: "pointer", textAlign: "center" }}>
-              <Avatar initials={op.initials} size={32} color={op.color} />
-              <div style={{ fontSize: 12, marginTop: 6, color: operator === op.initials ? op.color : C.muted, fontWeight: operator === op.initials ? 700 : 400 }}>{op.name}</div>
-            </button>
-          ))}
-        </div>
+      <div className="field">
+        <label className="field__label">Registrado por</label>
+        <OperatorPicker operator={operator} setOperator={setOperator} />
       </div>
       <Btn variant="orange" disabled={!valid} onClick={() => { onSave({ desc, amount: parseFloat(amount), cat, note, operator }); onClose(); }}>
         📉 Registrar Gasto de ${parseFloat(amount || 0).toFixed(2)}
@@ -330,8 +301,8 @@ export function AgregarProductoModal({ onClose, onSave }) {
   const [cat, setCat] = useState("Bebidas");
   const [stock, setStock] = useState("");
   const [hasStock, setHasStock] = useState(true);
-  const [imgSrc, setImgSrc] = useState(null);   // base64 preview
-  const [imgFile, setImgFile] = useState(null);  // File object
+  const [imgSrc, setImgSrc] = useState(null);
+  const [imgFile, setImgFile] = useState(null);
   const fileRef = useRef();
   const valid = name && parseFloat(price || 0) > 0;
 
@@ -346,57 +317,42 @@ export function AgregarProductoModal({ onClose, onSave }) {
 
   return (
     <Modal title="Agregar Producto" titleIcon="📦" onClose={onClose}>
-      {/* Category */}
-      <div style={{ marginBottom: 16 }}>
-        <label style={{ fontSize: 13, color: C.muted, display: "block", marginBottom: 8 }}>Categoría</label>
-        <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+      <div className="field">
+        <label className="field__label">Categoría</label>
+        <div className="chips">
           {CATS_FOR_PRODUCT.map(c => (
-            <button key={c} onClick={() => setCat(c)} style={{ padding: "6px 14px", borderRadius: 20, border: `1px solid ${cat === c ? C.accent : C.border}`, background: cat === c ? `${C.accent}22` : C.bg, color: cat === c ? C.accent : C.muted, cursor: "pointer", fontSize: 12, fontWeight: cat === c ? 700 : 400 }}>{c}</button>
+            <button key={c} className={`chip${cat === c ? " chip--active" : ""}`} onClick={() => setCat(c)}>{c}</button>
           ))}
         </div>
       </div>
 
-      {/* Image upload */}
-      <div style={{ marginBottom: 16 }}>
-        <label style={{ fontSize: 13, color: C.muted, display: "block", marginBottom: 8 }}>Imagen del producto</label>
-        <div
-          onClick={() => fileRef.current?.click()}
-          style={{ border: `2px dashed ${imgSrc ? C.accent : C.border}`, borderRadius: 12, padding: "20px", textAlign: "center", cursor: "pointer", background: imgSrc ? `${C.accent}08` : C.bg, transition: "border-color .2s" }}>
+      <div className="field">
+        <label className="field__label">Imagen del producto</label>
+        <div className={`dropzone${imgSrc ? " dropzone--filled" : ""}`} onClick={() => fileRef.current?.click()}>
           {imgSrc ? (
-            <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 10 }}>
-              <Image
-                src={imgSrc}
-                alt="preview"
-                width={100}
-                height={100}
-                style={{
-                  borderRadius: 10,
-                  objectFit: "cover",
-                  border: `2px solid ${C.accent}55`
-                }}
-              />
-              <span style={{ fontSize: 12, color: C.accent, fontWeight: 600 }}>✅ Imagen cargada — clic para cambiar</span>
+            <div className="dropzone__col">
+              <Image className="dropzone__preview" src={imgSrc} alt="preview" width={100} height={100} />
+              <span className="dropzone__ok">✅ Imagen cargada — clic para cambiar</span>
             </div>
           ) : (
-            <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 8 }}>
-              <div style={{ fontSize: 36 }}>🖼️</div>
-              <div style={{ fontSize: 13, color: C.muted }}>Clic para subir imagen</div>
-              <div style={{ fontSize: 11, color: C.muted }}>PNG, JPG, WEBP · máx 5 MB</div>
+            <div className="dropzone__col">
+              <p className="dropzone__big">🖼️</p>
+              <p className="dropzone__hint">Clic para subir imagen</p>
+              <p className="dropzone__sub">PNG, JPG, WEBP · máx 5 MB</p>
             </div>
           )}
         </div>
-        <input ref={fileRef} type="file" accept="image/*" onChange={handleFile} style={{ display: "none" }} />
+        <input className="visually-hidden" ref={fileRef} type="file" accept="image/*" onChange={handleFile} />
       </div>
 
       <MInput label="Nombre del producto" required placeholder="Ej. Café Americano" value={name} onChange={setName} />
       <MInput label="Precio" required placeholder="0.00" value={price} onChange={setPrice} type="number" prefix="$" />
 
-      {/* Stock toggle */}
-      <div style={{ marginBottom: 16 }}>
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8 }}>
-          <label style={{ fontSize: 13, color: C.muted }}>¿Tiene control de stock?</label>
-          <button onClick={() => setHasStock(!hasStock)} style={{ width: 44, height: 24, borderRadius: 12, background: hasStock ? C.accent : C.border, border: "none", cursor: "pointer", position: "relative", transition: "background .2s" }}>
-            <div style={{ width: 18, height: 18, borderRadius: "50%", background: "#fff", position: "absolute", top: 3, left: hasStock ? 23 : 3, transition: "left .2s" }} />
+      <div className="field">
+        <div className="toggle-row">
+          <label className="field__label" style={{ margin: 0 }}>¿Tiene control de stock?</label>
+          <button className={`toggle${hasStock ? " toggle--on" : ""}`} onClick={() => setHasStock(!hasStock)} aria-pressed={hasStock}>
+            <span className="toggle__knob" />
           </button>
         </div>
         {hasStock && <MInput label="Stock inicial" placeholder="0" value={stock} onChange={setStock} type="number" />}
@@ -413,52 +369,49 @@ export function AgregarProductoModal({ onClose, onSave }) {
 }
 
 // ═══════════════════════════════════════════════════════════════
-// CHART: BAR — hover tooltip
+// CHART: BAR — tooltip on hover
 // ═══════════════════════════════════════════════════════════════
 export function BarChart({ data, height = 200 }) {
-  const [mounted, setMounted] = useState(false);
   const [hovered, setHovered] = useState(null);
   const containerRef = useRef(null);
-  useEffect(() => { const t = setTimeout(() => setMounted(true), 120); return () => clearTimeout(t); }, []);
 
   const max = Math.max(...data.map(d => d.value), 1);
   const ySteps = 5;
   const steps = Array.from({ length: ySteps + 1 }, (_, i) => Math.round(max * i / ySteps));
 
   return (
-    <div style={{ width: "100%", position: "relative" }} ref={containerRef}>
+    <div className="bar-chart" ref={containerRef}>
       {hovered && (
-        <div style={{ position: "absolute", left: hovered.x, top: hovered.y - 66, transform: "translateX(-50%)", background: C.card, border: `1px solid ${C.accent}`, borderRadius: 8, padding: "6px 14px", fontSize: 12, pointerEvents: "none", zIndex: 10, boxShadow: "0 4px 20px rgba(0,0,0,.5)", whiteSpace: "nowrap" }}>
-          <div style={{ color: C.accent, fontWeight: 700 }}>{hovered.label}</div>
-          <div style={{ color: C.text }}>${hovered.value.toLocaleString()}</div>
-          <div style={{ position: "absolute", bottom: -6, left: "50%", transform: "translateX(-50%)", width: 0, height: 0, borderLeft: "6px solid transparent", borderRight: "6px solid transparent", borderTop: `6px solid ${C.accent}` }} />
+        <div className="bar-chart__tooltip" style={{ left: hovered.x, top: hovered.y - 66 }}>
+          <p className="bar-chart__tooltip-label">{hovered.label}</p>
+          <p className="bar-chart__tooltip-value">${hovered.value.toLocaleString()}</p>
+          <span className="bar-chart__tooltip-arrow" />
         </div>
       )}
-      <div style={{ display: "flex", gap: 10, height, position: "relative" }}>
-        <div style={{ display: "flex", flexDirection: "column", justifyContent: "space-between", alignItems: "flex-end", paddingBottom: 28, minWidth: 36 }}>
+      <div className="bar-chart__plot-wrap" style={{ height }}>
+        <div className="bar-chart__yaxis">
           {[...steps].reverse().map((v, i) => (
-            <span key={i} style={{ fontSize: 10, color: C.muted }}>{v >= 1000 ? `${(v / 1000).toFixed(0)}k` : v}</span>
+            <span key={i} className="bar-chart__ytick">{v >= 1000 ? `${(v / 1000).toFixed(0)}k` : v}</span>
           ))}
         </div>
-        <div style={{ flex: 1, display: "flex", alignItems: "flex-end", gap: 6, position: "relative", borderLeft: `1px solid ${C.border}`, paddingLeft: 6 }}>
+        <div className="bar-chart__plot">
           {steps.map((_, i) => (
-            <div key={i} style={{ position: "absolute", left: 6, right: 0, bottom: `${(i / (steps.length - 1)) * (height - 28)}px`, borderTop: `1px dashed ${C.border}33`, pointerEvents: "none" }} />
+            <span key={i} className="bar-chart__gridline" style={{ "--b": `${(i / (steps.length - 1)) * (height - 28)}px` }} />
           ))}
           {data.map((d, i) => {
             const pct = (d.value / max) * 100;
-            const isHov = hovered?.idx === i;
             return (
-              <div key={i} style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", height: "100%", cursor: "pointer" }}
+              <div key={i} className="bar-col"
                 onMouseEnter={e => {
                   const rect = containerRef.current?.getBoundingClientRect();
                   const br = e.currentTarget.getBoundingClientRect();
-                  setHovered({ idx: i, x: br.left - rect.left + br.width / 2, y: br.top - rect.top, label: d.label, value: d.value });
+                  setHovered({ x: br.left - rect.left + br.width / 2, y: br.top - rect.top, label: d.label, value: d.value });
                 }}
                 onMouseLeave={() => setHovered(null)}>
-                <div style={{ flex: 1, width: "100%", display: "flex", alignItems: "flex-end" }}>
-                  <div style={{ width: "100%", height: mounted ? `${pct}%` : "0%", background: isHov ? `linear-gradient(180deg,#00ffcc,${C.accent})` : `linear-gradient(180deg,${C.accent}cc,${C.accentEnd})`, borderRadius: "5px 5px 0 0", transition: `height ${0.45 + i * .06}s cubic-bezier(.34,1.56,.64,1), background .15s`, minHeight: d.value > 0 ? 3 : 0, boxShadow: isHov ? `0 0 14px ${C.accent}88` : "none" }} />
+                <div className="bar-col__track">
+                  <div className="bar" style={{ "--h": `${pct}%`, "--d": `${i * 60}ms` }} />
                 </div>
-                <span style={{ fontSize: 10, color: isHov ? C.accent : C.muted, textAlign: "center", paddingTop: 6, paddingBottom: 4, lineHeight: 1.2, fontWeight: isHov ? 700 : 400, transition: "color .15s" }}>{d.label}</span>
+                <span className="bar-col__label">{d.label}</span>
               </div>
             );
           })}
@@ -469,7 +422,7 @@ export function BarChart({ data, height = 200 }) {
 }
 
 // ═══════════════════════════════════════════════════════════════
-// CHART: DONUT — fixed with user-provided arc formula
+// CHART: DONUT
 // ═══════════════════════════════════════════════════════════════
 export function DonutChart({ segments, size = 180, thickness = 30 }) {
   const [mounted, setMounted] = useState(false);
@@ -480,7 +433,6 @@ export function DonutChart({ segments, size = 180, thickness = 30 }) {
   const cx = size / 2, cy = size / 2;
   const circ = 2 * Math.PI * r;
 
-  // ── Arc calculation exactly as provided by user ──────────────
   const arcs = segments.reduce(
     (acc, seg) => {
       const frac = seg.value / total;
@@ -495,58 +447,47 @@ export function DonutChart({ segments, size = 180, thickness = 30 }) {
   ).result;
 
   return (
-    <div style={{ display: "flex", alignItems: "center", gap: 28, flexWrap: "wrap" }}>
-      {/* SVG */}
-      <div style={{ position: "relative", width: size, height: size, flexShrink: 0 }}>
-        <svg width={size} height={size} style={{ transform: "rotate(-90deg)" }}>
-          {/* Track */}
-          <circle cx={cx} cy={cy} r={r} fill="none" stroke={C.border} strokeWidth={thickness} />
-          {/* Segments */}
+    <div className="donut">
+      <div className="donut__figure" style={{ width: size, height: size }}>
+        <svg className="donut__svg" width={size} height={size}>
+          <circle cx={cx} cy={cy} r={r} fill="none" stroke="var(--border)" strokeWidth={thickness} />
           {arcs.map((arc, i) => (
-            <circle key={i} cx={cx} cy={cy} r={r} fill="none"
-              stroke={arc.color}
-              strokeWidth={thickness}
+            <circle key={i} className="donut__arc" cx={cx} cy={cy} r={r} fill="none"
+              stroke={arc.color} strokeWidth={thickness}
               strokeDasharray={`${mounted ? arc.dash : 0} ${arc.gap}`}
               strokeDashoffset={arc.startOffset}
-              style={{
-                transition: `stroke-dasharray ${0.7 + i * .2}s cubic-bezier(.34,1.56,.64,1)`,
-                filter: `drop-shadow(0 0 5px ${arc.color}88)`,
-              }}
+              style={{ filter: `drop-shadow(0 0 5px ${arc.color}88)` }}
             />
           ))}
         </svg>
-        {/* Center */}
-        <div style={{ position: "absolute", inset: 0, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center" }}>
-          <span style={{ fontSize: 11, color: C.muted }}>Total</span>
-          <span style={{ fontSize: 16, fontWeight: 800, color: C.text }}>100%</span>
+        <div className="donut__center">
+          <span className="donut__center-label">Total</span>
+          <span className="donut__center-value">100%</span>
         </div>
       </div>
-      {/* Legend */}
-      <div style={{ display: "flex", flexDirection: "column", gap: 14, flex: 1, minWidth: 130 }}>
+      <ul className="donut__legend">
         {segments.map((seg, i) => (
-          <div key={i} style={{ display: "flex", alignItems: "center", gap: 10 }}>
-            <div style={{ width: 12, height: 12, borderRadius: "50%", background: seg.color, flexShrink: 0, boxShadow: `0 0 8px ${seg.color}` }} />
-            <span style={{ color: C.muted, fontSize: 13, flex: 1 }}>{seg.label}</span>
-            <span style={{ color: C.text, fontWeight: 700, fontSize: 15, minWidth: 36, textAlign: "right" }}>{seg.value}%</span>
-          </div>
+          <li key={i} className="legend-item">
+            <span className="legend-dot" style={{ "--c": seg.color }} />
+            <span className="legend-label">{seg.label}</span>
+            <span className="legend-value">{seg.value}%</span>
+          </li>
         ))}
-      </div>
+      </ul>
     </div>
   );
 }
 
 export function ProgressBar({ label, value, max, color, amount, delay = 0 }) {
-  const [mounted, setMounted] = useState(false);
-  useEffect(() => { const t = setTimeout(() => setMounted(true), delay + 100); return () => clearTimeout(t); }, [delay]);
   const pct = Math.min((value / (max || 1)) * 100, 100);
   return (
-    <div style={{ marginBottom: 14 }}>
-      <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6, fontSize: 13 }}>
-        <span style={{ background: `${color}33`, color, padding: "2px 10px", borderRadius: 6, fontSize: 12, fontWeight: 600 }}>{label}</span>
-        <span style={{ color: C.muted, fontSize: 12 }}>{amount}</span>
+    <div className="progress" style={{ "--c": color }}>
+      <div className="progress__head">
+        <span className="progress__label">{label}</span>
+        <span className="progress__amount">{amount}</span>
       </div>
-      <div style={{ height: 6, background: C.border, borderRadius: 4, overflow: "hidden" }}>
-        <div style={{ height: "100%", borderRadius: 4, background: `linear-gradient(90deg,${color},${color}99)`, width: mounted ? `${pct}%` : "0%", transition: `width ${0.6 + delay * .001}s cubic-bezier(.34,1.56,.64,1)` }} />
+      <div className="progress__track">
+        <div className="progress__fill" style={{ "--w": `${pct}%`, "--d": `${delay}ms` }} />
       </div>
     </div>
   );
@@ -557,32 +498,21 @@ export function ProgressBar({ label, value, max, color, amount, delay = 0 }) {
 // ═══════════════════════════════════════════════════════════════
 const STATUS_ORDER = ["Al Día", "En Seguimiento", "Atrasado", "Crítico"];
 const STATUS_META = {
-  "Al Día": { color: C.accent, icon: "✅", range: "0–7 días", cardBg: `${C.accent}11` },
-  "En Seguimiento": { color: C.warn, icon: "🕐", range: "8–30 días", cardBg: `${C.warn}11` },
-  "Atrasado": { color: C.orange, icon: "⚠️", range: "31–60 días", cardBg: `${C.orange}11` },
-  "Crítico": { color: C.danger, icon: "🔴", range: "60+ días", cardBg: `${C.danger}11` },
+  "Al Día": { color: COLORS.accent, icon: "✅", range: "0–7 días" },
+  "En Seguimiento": { color: COLORS.warn, icon: "🕐", range: "8–30 días" },
+  "Atrasado": { color: COLORS.orange, icon: "⚠️", range: "31–60 días" },
+  "Crítico": { color: COLORS.danger, icon: "🔴", range: "60+ días" },
 };
 
 const CATS_INV = ["Todos", "Bebidas", "Snacks", "Suplementos", "Servicios", "Ropa", "Accesorios"];
 const GASTO_CATS_FILTER = ["Todos", "Renta / Local", "Proveedores", "Servicios", "Sueldos", "Equipo", "Marketing", "Limpieza"];
 
 // ─── Product thumbnail helper ─────────────────────────────────────────────────
-// Shows image if available, otherwise emoji with subtle dark bg
 export function ProductThumb({ p, size = 48 }) {
   return p.imgSrc ? (
-    <Image
-      src={p.imgSrc}
-      alt={p.name}
-      width={size}
-      height={size}
-      style={{
-        borderRadius: size * 0.2,
-        objectFit: "cover",
-        flexShrink: 0
-      }}
-    />
+    <Image className="product-thumb" style={{ "--sz": `${size}px` }} src={p.imgSrc} alt={p.name} width={size} height={size} />
   ) : (
-    <div style={{ width: size, height: size, borderRadius: size * .2, background: `${C.accent}11`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: size * .5, flexShrink: 0 }}>{p.emoji}</div>
+    <span className="product-thumb--emoji" style={{ "--sz": `${size}px` }}>{p.emoji}</span>
   );
 }
 
@@ -594,15 +524,12 @@ export function DeudoresView({ user }) {
   const [filter, setFilter] = useState("Todos");
   const [expanded, setExpanded] = useState(null);
   const [showModal, setShowModal] = useState(false);
-
   const [deudores, setDeudores] = useState([]);
-  const [loadingD, setLoadingD] = useState(true);
 
   useEffect(() => {
     DeudoresAPI.list()
       .then(data => setDeudores(data))
-      .catch(err => console.error("Error al cargar deudores:", err))
-      .finally(() => setLoadingD(false));
+      .catch(err => console.error("Error al cargar deudores:", err));
   }, []);
 
   const grouped = STATUS_ORDER.reduce((acc, s) => {
@@ -614,7 +541,7 @@ export function DeudoresView({ user }) {
   const stats = STATUS_ORDER.map(s => ({ status: s, count: deudores.filter(d => d.status === s).length, amount: deudores.filter(d => d.status === s).reduce((a, d) => a + d.amount, 0) }));
 
   return (
-    <div style={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden", background: C.bg }}>
+    <section className="view">
       {showModal && <NuevoDeudorModal user={user} onClose={() => setShowModal(false)} onSave={async data => {
         try {
           const { debtor } = await DeudoresAPI.create(data);
@@ -625,39 +552,42 @@ export function DeudoresView({ user }) {
       }} />}
       <PageHeader title="Gestión de Deudores" user={user} />
       <ScrollArea>
-        <div style={{ display: "flex", gap: 12, marginBottom: 20, flexWrap: "wrap" }}>
+        <div className="debt-stats">
           {stats.map((s, i) => {
-            const m = STATUS_META[s.status]; return (
-              <div key={s.status} style={{ flex: 1, minWidth: 160, background: m.cardBg, border: `1px solid ${m.color}33`, borderRadius: 12, padding: "16px 18px", opacity: 0, animation: `fadeUp .4s ease ${i * .08}s both` }}>
-                <div style={{ fontSize: 12, color: m.color, marginBottom: 6, fontWeight: 600 }}>{m.icon} {s.status}</div>
-                <div style={{ fontSize: 26, fontWeight: 800, color: m.color }}>{s.count}</div>
-                <div style={{ fontSize: 13, color: C.muted }}>${s.amount.toLocaleString()}</div>
-                <div style={{ fontSize: 11, color: `${m.color}99`, marginTop: 2 }}>{m.range}</div>
-              </div>
+            const m = STATUS_META[s.status];
+            return (
+              <article key={s.status} className="debt-stat" style={{ "--c": m.color, "--d": `${i * 80}ms` }}>
+                <p className="debt-stat__label">{m.icon} {s.status}</p>
+                <p className="debt-stat__count">{s.count}</p>
+                <p className="debt-stat__amount">${s.amount.toLocaleString()}</p>
+                <p className="debt-stat__range">{m.range}</p>
+              </article>
             );
           })}
         </div>
-        <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 12, padding: "14px 20px", display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 20 }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-            <div style={{ width: 40, height: 40, borderRadius: "50%", background: `${C.accent}22`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18 }}>👥</div>
-            <div><div style={{ fontWeight: 700 }}>{deudores.length} Deudores registrados</div><div style={{ fontSize: 12, color: C.muted }}>Deuda total acumulada</div></div>
+        <section className="debt-total">
+          <div className="debt-total__left">
+            <span className="debt-total__icon">👥</span>
+            <div>
+              <p className="debt-total__count">{deudores.length} Deudores registrados</p>
+              <p className="debt-total__sub">Deuda total acumulada</p>
+            </div>
           </div>
-          <div style={{ textAlign: "right" }}>
-            <div style={{ fontSize: 24, fontWeight: 800, color: C.accent }}>${totalDebt.toLocaleString()}.00</div>
-            <div style={{ fontSize: 12, color: C.muted }}>pendiente</div>
+          <div>
+            <p className="debt-total__amount">${totalDebt.toLocaleString()}.00</p>
+            <p className="debt-total__sub" style={{ textAlign: "right" }}>pendiente</p>
           </div>
-        </div>
-        <div style={{ display: "flex", gap: 12, marginBottom: 16, alignItems: "center" }}>
-          <div style={{ position: "relative", flex: 1 }}>
-            <span style={{ position: "absolute", left: 14, top: "50%", transform: "translateY(-50%)", color: C.muted }}>🔍</span>
-            <input style={{ width: "100%", boxSizing: "border-box", background: C.card, border: `1px solid ${C.border}`, borderRadius: 10, color: C.text, fontSize: 14, padding: "10px 14px 10px 40px", outline: "none" }}
-              placeholder="Buscar deudor, teléfono o concepto..." value={search} onChange={e => setSearch(e.target.value)} />
+        </section>
+        <div className="toolbar-row">
+          <div className="search">
+            <span className="search__icon">🔍</span>
+            <input className="search__input" placeholder="Buscar deudor, teléfono o concepto..." value={search} onChange={e => setSearch(e.target.value)} />
           </div>
           <Btn onClick={() => setShowModal(true)}>+ Nuevo Deudor</Btn>
         </div>
-        <div style={{ display: "flex", gap: 8, marginBottom: 20, flexWrap: "wrap" }}>
+        <div className="filters">
           {["Todos", ...STATUS_ORDER].map(f => (
-            <button key={f} onClick={() => setFilter(f)} style={{ padding: "5px 14px", borderRadius: 20, fontSize: 12, fontWeight: 600, cursor: "pointer", background: filter === f ? `${C.accent}22` : "transparent", border: `1px solid ${filter === f ? C.accent : C.border}`, color: filter === f ? C.accent : C.muted }}>
+            <button key={f} className={`chip${filter === f ? " chip--active" : ""}`} onClick={() => setFilter(f)}>
               {f === "Todos" ? `Todos (${deudores.length})` : `${STATUS_META[f].icon} ${f} (${deudores.filter(d => d.status === f).length})`}
             </button>
           ))}
@@ -667,21 +597,24 @@ export function DeudoresView({ user }) {
           if (!group.length) return null;
           const m = STATUS_META[status];
           return (
-            <div key={status}>
+            <section key={status}>
               <SectionLabel icon={m.icon} title={`${status} (${m.range})`} count={`${group.length} clientes`} color={m.color} />
               {group.map((d, i) => (
-                <div key={d.id} className="feh-hover feh-fade" style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 10, marginBottom: 8, padding: "14px 18px", cursor: "pointer", animationDelay: `${i * .06}s`, borderLeft: `3px solid ${m.color}` }} onClick={() => setExpanded(expanded === d.id ? null : d.id)}>
-                  <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                <article key={d.id} className="debt-card animate" style={{ "--c": m.color, "--d": `${i * 60}ms` }} onClick={() => setExpanded(expanded === d.id ? null : d.id)}>
+                  <div className="debt-card__row">
                     <Avatar initials={d.initials} color={m.color} size={38} />
-                    <div style={{ flex: 1 }}>
-                      <div style={{ display: "flex", alignItems: "center", gap: 8 }}><span style={{ fontWeight: 600, fontSize: 14 }}>{d.name}</span><StatusBadge status={d.status} /></div>
-                      <div style={{ fontSize: 12, color: C.muted, marginTop: 2 }}>📅 {d.days} días &nbsp;📞 {d.phone}</div>
+                    <div className="debt-card__info">
+                      <div className="debt-card__name-row"><span className="debt-card__name">{d.name}</span><StatusBadge status={d.status} /></div>
+                      <p className="debt-card__meta">📅 {d.days} días &nbsp;📞 {d.phone}</p>
                     </div>
-                    <div style={{ textAlign: "right" }}><div style={{ fontSize: 16, fontWeight: 700, color: m.color }}>${d.amount.toLocaleString()}.00</div><div style={{ fontSize: 11, color: C.muted }}>pendiente</div></div>
-                    <span style={{ color: C.muted, display: "inline-block", transform: expanded === d.id ? "rotate(180deg)" : "rotate(0)", transition: "transform .2s" }}>▾</span>
+                    <div className="debt-card__amount">
+                      <p className="debt-card__amount-value" style={{ "--c": m.color }}>${d.amount.toLocaleString()}.00</p>
+                      <p className="debt-card__amount-sub">pendiente</p>
+                    </div>
+                    <span className={`debt-card__chevron${expanded === d.id ? " debt-card__chevron--open" : ""}`}>▾</span>
                   </div>
                   {expanded === d.id && (
-                    <div style={{ marginTop: 12, paddingTop: 12, borderTop: `1px solid ${C.border}`, display: "flex", gap: 8 }}>
+                    <div className="debt-card__actions">
                       <Btn variant="ghost" size="sm">📋 Ver historial</Btn>
                       <Btn variant="primary" size="sm">💰 Registrar pago</Btn>
                       <Btn variant="danger" size="sm" onClick={async e => {
@@ -695,13 +628,13 @@ export function DeudoresView({ user }) {
                       }}>🗑 Eliminar</Btn>
                     </div>
                   )}
-                </div>
+                </article>
               ))}
-            </div>
+            </section>
           );
         })}
       </ScrollArea>
-    </div>
+    </section>
   );
 }
 
@@ -716,7 +649,7 @@ export function TicketsView({ user, tickets, setTickets, onRecover }) {
   const urgentes = tickets.filter(t => t.urgent).length;
 
   return (
-    <div style={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden", background: C.bg }}>
+    <section className="view">
       {cobrarTicket && <CobrarTicketModal ticket={cobrarTicket} onClose={() => setCobrarTicket(null)} onConfirm={async (payment) => {
         try {
           await TicketsAPI.charge(cobrarTicket.id, payment);
@@ -728,44 +661,47 @@ export function TicketsView({ user, tickets, setTickets, onRecover }) {
       }} />}
       <PageHeader title="Tickets Pendientes" user={user} />
       <ScrollArea>
-        <div style={{ display: "flex", gap: 14, marginBottom: 24, flexWrap: "wrap" }}>
-          <StatCard icon="🎫" label="Tickets activos" value={active} color={C.accent} delay={0} />
-          <StatCard icon="💰" label="Total pendiente" value={`$${total}`} color={C.blue} delay={80} />
-          <StatCard icon="⚠️" label="Urgentes (+45min)" value={urgentes} color={C.danger} delay={160} />
+        <div className="stats-row">
+          <StatCard icon="🎫" label="Tickets activos" value={active} color={COLORS.accent} delay={0} />
+          <StatCard icon="💰" label="Total pendiente" value={`$${total}`} color={COLORS.blue} delay={80} />
+          <StatCard icon="⚠️" label="Urgentes (+45min)" value={urgentes} color={COLORS.danger} delay={160} />
         </div>
-        <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 16 }}>
-          <span>🎫</span><h3 style={{ margin: 0, fontSize: 16, fontWeight: 700 }}>Tickets Pendientes</h3>
+        <div className="subhead">
+          <span>🎫</span><h3 className="subhead__title">Tickets Pendientes</h3>
         </div>
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(340px,1fr))", gap: 16 }}>
+        <div className="tickets-grid">
           {tickets.map((t, i) => (
-            <div key={t.id} className="feh-fade" style={{ background: C.card, border: `1px solid ${t.urgent ? `${C.danger}66` : C.border}`, borderRadius: 14, padding: "18px 20px", animationDelay: `${i * .1}s` }}>
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 14 }}>
-                <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                  <div style={{ width: 36, height: 36, borderRadius: 10, background: `${C.accent}22`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18 }}>🛍</div>
+            <article key={t.id} className={`ticket-card animate${t.urgent ? " ticket-card--urgent" : ""}`} style={{ "--d": `${i * 100}ms` }}>
+              <header className="ticket__head">
+                <div className="ticket__head-left">
+                  <span className="ticket__icon">🛍</span>
                   <div>
-                    <div style={{ fontWeight: 700, fontSize: 15 }}>{t.location}</div>
-                    <div style={{ fontSize: 12, color: t.urgent ? C.danger : C.muted, display: "flex", alignItems: "center", gap: 4 }}>🕐 {t.time} {t.urgent && <StatusBadge status="Urgente" />}</div>
+                    <p className="ticket__loc">{t.location}</p>
+                    <p className={`ticket__time${t.urgent ? " ticket__time--urgent" : ""}`}>🕐 {t.time} {t.urgent && <StatusBadge status="Urgente" />}</p>
                   </div>
                 </div>
-                <div style={{ textAlign: "right" }}><div style={{ fontSize: 18, fontWeight: 800, color: t.urgent ? C.danger : C.accent }}>${t.total}.00</div><div style={{ fontSize: 11, color: C.muted }}>{t.items.length} productos</div></div>
-              </div>
+                <div>
+                  <p className={`ticket__total${t.urgent ? " ticket__total--urgent" : ""}`}>${t.total}.00</p>
+                  <p className="ticket__count">{t.items.length} productos</p>
+                </div>
+              </header>
               {t.items.map((item, j) => (
-                <div key={j} style={{ display: "flex", justifyContent: "space-between", fontSize: 13, color: C.muted, marginBottom: 4 }}><span>{item.name}</span><span>${item.price}.00</span></div>
+                <div key={j} className="ticket__line"><span>{item.name}</span><span>${item.price}.00</span></div>
               ))}
-              {t.note && <div style={{ background: "#2d1e0088", border: `1px solid ${C.warn}44`, borderRadius: 8, padding: "6px 12px", fontSize: 12, color: C.warn, margin: "10px 0" }}>📋 {t.note}</div>}
-              <div style={{ fontSize: 12, color: C.muted, margin: "10px 0", display: "flex", alignItems: "center", gap: 6 }}>
-                <Avatar initials={t.savedBy[0]} size={20} color={C.blue} /> Guardado por <strong style={{ color: C.text }}>{t.savedBy}</strong>
+              {t.note && <p className="ticket__note">📋 {t.note}</p>}
+              <p className="ticket__saved">
+                <Avatar initials={t.savedBy[0]} size={20} color={COLORS.blue} /> Guardado por <strong>{t.savedBy}</strong>
                 {t.client && <> &nbsp;👤 <span>{t.client}</span></>}
-              </div>
-              <div style={{ display: "flex", gap: 8, marginTop: 12 }}>
-                <button onClick={async () => {
+              </p>
+              <div className="ticket__actions">
+                <button className="icon-btn-danger" onClick={async () => {
                   try {
                     await TicketsAPI.delete(t.id);
                     setTickets(p => p.filter(x => x.id !== t.id));
                   } catch (err) {
                     console.error("Error al eliminar ticket:", err);
                   }
-                }} style={{ width: 36, height: 36, borderRadius: 8, background: `${C.danger}22`, border: `1px solid ${C.danger}44`, color: C.danger, cursor: "pointer", fontSize: 16 }}>🗑</button>
+                }}>🗑</button>
                 <Btn variant="ghost" onClick={async () => {
                   try {
                     await TicketsAPI.delete(t.id);
@@ -777,16 +713,16 @@ export function TicketsView({ user, tickets, setTickets, onRecover }) {
                 }}>🔄 Recuperar</Btn>
                 <Btn variant="primary" onClick={() => setCobrarTicket(t)}>✅ Cobrar</Btn>
               </div>
-            </div>
+            </article>
           ))}
           {tickets.length === 0 && (
-            <div style={{ gridColumn: "1/-1", textAlign: "center", padding: "60px 0", color: C.muted }}>
-              <div style={{ fontSize: 48, marginBottom: 12 }}>🎉</div><p>No hay tickets pendientes</p>
+            <div className="empty-block">
+              <p className="empty-block__emoji">🎉</p><p>No hay tickets pendientes</p>
             </div>
           )}
         </div>
       </ScrollArea>
-    </div>
+    </section>
   );
 }
 
@@ -802,7 +738,7 @@ export function InventarioView({ user, products, setProducts }) {
   const lowStock = products.filter(p => p.status === "Bajo");
   const totalVal = products.reduce((s, p) => s + p.price * (p.stock || 0), 0);
   const agotados = products.filter(p => p.stock === 0).length;
-  const statusColor = { "OK": C.green, "Bajo": C.warn, "Agotado": C.danger };
+  const statusColor = { "OK": COLORS.green, "Bajo": COLORS.warn, "Agotado": COLORS.danger };
 
   const handleSave = async (data) => {
     try {
@@ -814,63 +750,62 @@ export function InventarioView({ user, products, setProducts }) {
   };
 
   return (
-    <div style={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden", background: C.bg }}>
+    <section className="view">
       {showModal && <AgregarProductoModal onClose={() => setShowModal(false)} onSave={handleSave} />}
       <PageHeader title="Inventario" user={user} />
       <ScrollArea>
         {lowStock.length > 0 && (
-          <div style={{ background: "#2d1e00", border: `1px solid ${C.warn}44`, borderRadius: 12, padding: "12px 18px", marginBottom: 20, display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
-            <span style={{ color: C.warn, fontWeight: 700 }}>⚠️ {lowStock.length} productos con stock bajo</span>
-            {lowStock.map(p => <span key={p.id} style={{ background: `${C.warn}22`, color: C.warn, borderRadius: 6, padding: "2px 10px", fontSize: 12, fontWeight: 600 }}>{p.emoji} {p.name} ({p.stock})</span>)}
-          </div>
+          <aside className="low-stock">
+            <span className="low-stock__title">⚠️ {lowStock.length} productos con stock bajo</span>
+            {lowStock.map(p => <span key={p.id} className="low-stock__tag">{p.emoji} {p.name} ({p.stock})</span>)}
+          </aside>
         )}
-        <div style={{ display: "flex", gap: 12, marginBottom: 20, flexWrap: "wrap" }}>
-          <StatCard icon="📦" label="Total productos" value={products.length} color={C.accent} delay={0} />
-          <StatCard icon="⚠️" label="Stock bajo" value={lowStock.length} color={C.warn} delay={80} />
-          <StatCard icon="❌" label="Agotados" value={agotados} color={C.danger} delay={160} />
-          <StatCard icon="💲" label="Valor en stock" value={`$${totalVal.toLocaleString()}`} color={C.green} delay={240} />
+        <div className="stats-row">
+          <StatCard icon="📦" label="Total productos" value={products.length} color={COLORS.accent} delay={0} />
+          <StatCard icon="⚠️" label="Stock bajo" value={lowStock.length} color={COLORS.warn} delay={80} />
+          <StatCard icon="❌" label="Agotados" value={agotados} color={COLORS.danger} delay={160} />
+          <StatCard icon="💲" label="Valor en stock" value={`$${totalVal.toLocaleString()}`} color={COLORS.green} delay={240} />
         </div>
-        <div style={{ display: "flex", gap: 10, marginBottom: 16, alignItems: "center", flexWrap: "wrap" }}>
-          <div style={{ position: "relative", flex: 1, minWidth: 200 }}>
-            <span style={{ position: "absolute", left: 12, top: "50%", transform: "translateY(-50%)", color: C.muted }}>🔍</span>
-            <input style={{ width: "100%", boxSizing: "border-box", background: C.card, border: `1px solid ${C.border}`, borderRadius: 10, color: C.text, fontSize: 13, padding: "9px 12px 9px 36px", outline: "none" }}
-              placeholder="Buscar producto..." value={search} onChange={e => setSearch(e.target.value)} />
+        <div className="toolbar-row" style={{ flexWrap: "wrap" }}>
+          <div className="search">
+            <span className="search__icon">🔍</span>
+            <input className="search__input" placeholder="Buscar producto..." value={search} onChange={e => setSearch(e.target.value)} />
           </div>
           {CATS_INV.map(c => (
-            <button key={c} onClick={() => setCat(c)} style={{ padding: "7px 14px", borderRadius: 8, border: `1px solid ${cat === c ? C.accent : C.border}`, background: cat === c ? `${C.accent}22` : C.card, color: cat === c ? C.accent : C.muted, fontSize: 12, fontWeight: 600, cursor: "pointer" }}>{c}</button>
+            <button key={c} className={`chip${cat === c ? " chip--active" : ""}`} onClick={() => setCat(c)}>{c}</button>
           ))}
           <Btn variant="primary" onClick={() => setShowModal(true)}>+ Agregar</Btn>
         </div>
-        <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 12, overflow: "hidden" }}>
-          <div style={{ display: "grid", gridTemplateColumns: "2fr 1fr 1fr 80px 80px 100px", padding: "10px 20px", borderBottom: `1px solid ${C.border}`, fontSize: 11, color: C.muted, fontWeight: 700, letterSpacing: 1, textTransform: "uppercase" }}>
+        <div className="data-card">
+          <div className="inv-head">
             <span>Producto</span><span>Categoría</span><span>Precio</span><span>Stock</span><span>Estado</span><span>Acciones</span>
           </div>
           {filtered.map((p, i) => (
-            <div key={p.id} className="feh-hover feh-fade" style={{ display: "grid", gridTemplateColumns: "2fr 1fr 1fr 80px 80px 100px", padding: "10px 20px", borderBottom: `1px solid ${C.border}`, fontSize: 13, alignItems: "center", animationDelay: `${i * .03}s`, borderLeft: `3px solid ${statusColor[p.status] || C.border}` }}>
-              <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+            <div key={p.id} className="inv-row animate" style={{ "--c": statusColor[p.status] || "var(--border)", "--d": `${i * 30}ms` }}>
+              <div className="inv-row__prod">
                 <ProductThumb p={p} size={36} />
-                <span style={{ fontWeight: 500 }}>{p.name}</span>
+                <span className="inv-row__prod-name">{p.name}</span>
               </div>
-              <span><span style={{ background: `${C.accent}22`, color: C.accent, borderRadius: 6, padding: "2px 10px", fontSize: 11, fontWeight: 600 }}>{p.cat}</span></span>
-              <span style={{ color: C.accent, fontWeight: 600 }}>${p.price}.00</span>
-              <span style={{ color: p.stock !== null && p.stock <= 8 ? C.warn : C.text }}>{p.stock !== null ? `↘ ${p.stock}` : "—"}</span>
+              <span><span className="cat-tag">{p.cat}</span></span>
+              <span className="inv-row__price">${p.price}.00</span>
+              <span className={p.stock !== null && p.stock <= 8 ? "inv-row__stock--low" : ""}>{p.stock !== null ? `↘ ${p.stock}` : "—"}</span>
               <StatusBadge status={p.status} />
-              <div style={{ display: "flex", gap: 8 }}>
-                <button style={{ background: "none", border: "none", color: C.muted, cursor: "pointer", fontSize: 16, padding: 0 }}>✏️</button>
-                <button onClick={async () => {
+              <div className="inv-row__actions">
+                <button className="icon-btn">✏️</button>
+                <button className="icon-btn" onClick={async () => {
                   try {
                     await ProductsAPI.delete(p.id);
                     setProducts(prev => prev.filter(x => x.id !== p.id));
                   } catch (err) {
                     console.error("Error al eliminar producto:", err);
                   }
-                }} style={{ background: "none", border: "none", color: C.muted, cursor: "pointer", fontSize: 16, padding: 0 }}>🗑</button>
+                }}>🗑</button>
               </div>
             </div>
           ))}
         </div>
       </ScrollArea>
-    </div>
+    </section>
   );
 }
 
@@ -887,7 +822,7 @@ export function GastosView({ user }) {
 
   useEffect(() => {
     GastosAPI.list()
-      .then(data => setGastos(data.map(g => ({ ...g, color: CAT_COLORS_MAP[g.cat] || C.muted }))))
+      .then(data => setGastos(data.map(g => ({ ...g, color: CAT_COLORS_MAP[g.cat] || COLORS.muted }))))
       .catch(err => console.error("Error al cargar gastos:", err));
     ReportsAPI.summary("Este mes")
       .then(s => setIngresosMes(s.kpis.ventas))
@@ -903,76 +838,75 @@ export function GastosView({ user }) {
       return acc;
     }, {})
   )
-    .map(([label, value]) => ({ label, value, color: CAT_COLORS_MAP[label] || C.muted }))
+    .map(([label, value]) => ({ label, value, color: CAT_COLORS_MAP[label] || COLORS.muted }))
     .sort((a, b) => b.value - a.value);
   const maxGasto = Math.max(...catDist.map(g => g.value), 1);
   const filtered = filter === "Todos" ? gastos : gastos.filter(g => (g.cat || "").toLowerCase().includes(filter.toLowerCase()));
 
   return (
-    <div style={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden", background: C.bg }}>
+    <section className="view">
       {showModal && <RegistrarGastoModal onClose={() => setShowModal(false)} onSave={async data => {
         try {
           const { expense } = await GastosAPI.create(data);
-          setGastos(prev => [{ ...expense, color: CAT_COLORS_MAP[expense.cat] || C.muted }, ...prev]);
+          setGastos(prev => [{ ...expense, color: CAT_COLORS_MAP[expense.cat] || COLORS.muted }, ...prev]);
         } catch (err) {
           console.error("Error al registrar gasto:", err);
         }
       }} />}
       <PageHeader title="Registro de Gastos" user={user} />
       <ScrollArea>
-        <div style={{ display: "flex", gap: 12, marginBottom: 20, flexWrap: "wrap" }}>
-          <StatCard icon="📉" label="Total gastos" value={`$${totalGastos.toLocaleString()}`} sub={`${gastos.length} registros`} color={C.danger} delay={0} />
-          <StatCard icon="📅" label="Este mes" value={`$${totalGastos.toLocaleString()}`} sub={`${gastos.length} gastos`} color={C.orange} delay={80} />
-          <StatCard icon="💲" label="Ingresos mes" value={`$${ingresosMes.toLocaleString()}`} sub="ventas del mes" color={C.blue} delay={160} />
-          <StatCard icon="📋" label="Ganancia neta" value={`$${gananciaNeta.toLocaleString()}`} sub="ingresos − gastos" color={C.green} delay={240} />
+        <div className="stats-row">
+          <StatCard icon="📉" label="Total gastos" value={`$${totalGastos.toLocaleString()}`} sub={`${gastos.length} registros`} color={COLORS.danger} delay={0} />
+          <StatCard icon="📅" label="Este mes" value={`$${totalGastos.toLocaleString()}`} sub={`${gastos.length} gastos`} color={COLORS.orange} delay={80} />
+          <StatCard icon="💲" label="Ingresos mes" value={`$${ingresosMes.toLocaleString()}`} sub="ventas del mes" color={COLORS.blue} delay={160} />
+          <StatCard icon="📋" label="Ganancia neta" value={`$${gananciaNeta.toLocaleString()}`} sub="ingresos − gastos" color={COLORS.green} delay={240} />
         </div>
         {catDist.length > 0 && (
-          <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 12, padding: "20px 24px", marginBottom: 20 }}>
-            <h4 style={{ margin: "0 0 16px", fontSize: 14, fontWeight: 700 }}>Distribución por categoría</h4>
+          <section className="card-pad">
+            <h4 className="card-pad__title">Distribución por categoría</h4>
             {catDist.map((g, i) => <ProgressBar key={g.label} label={g.label} value={g.value} max={maxGasto} color={g.color} amount={`$${g.value.toLocaleString()}`} delay={i * 100} />)}
-          </div>
+          </section>
         )}
-        <div style={{ display: "flex", gap: 8, marginBottom: 16, alignItems: "center", flexWrap: "wrap" }}>
-          <div style={{ display: "flex", gap: 6, overflowX: "auto", flex: 1 }}>
+        <div className="gasto-toolbar">
+          <div className="gasto-toolbar__filters">
             {GASTO_CATS_FILTER.map(f => (
-              <button key={f} onClick={() => setFilter(f)} style={{ padding: "6px 14px", borderRadius: 20, border: `1px solid ${filter === f ? C.accent : C.border}`, background: filter === f ? `${C.accent}22` : "transparent", color: filter === f ? C.accent : C.muted, fontSize: 12, fontWeight: 600, cursor: "pointer", whiteSpace: "nowrap" }}>{f}</button>
+              <button key={f} className={`chip${filter === f ? " chip--active" : ""}`} onClick={() => setFilter(f)}>{f}</button>
             ))}
           </div>
           <Btn variant="primary" onClick={() => setShowModal(true)}>+ Nuevo Gasto</Btn>
         </div>
-        <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 12, overflow: "hidden" }}>
-          <div style={{ padding: "10px 20px", borderBottom: `1px solid ${C.border}`, display: "flex", justifyContent: "space-between", fontSize: 13 }}>
-            <span style={{ color: C.muted }}>{filtered.length} gastos</span>
-            <span style={{ color: C.muted }}>Total: <strong style={{ color: C.text }}>${filtered.reduce((s, g) => s + g.amount, 0).toLocaleString()}</strong></span>
+        <div className="data-card">
+          <div className="data-card__head">
+            <span>{filtered.length} gastos</span>
+            <span>Total: <strong>${filtered.reduce((s, g) => s + g.amount, 0).toLocaleString()}</strong></span>
           </div>
           {filtered.map((g, i) => (
-            <div key={g.id} className="feh-hover feh-fade" style={{ display: "flex", alignItems: "center", gap: 14, padding: "14px 20px", borderBottom: `1px solid ${C.border}`, animationDelay: `${i * .07}s` }}>
-              <div style={{ width: 36, height: 36, borderRadius: 10, background: `${g.color}22`, border: `1px solid ${g.color}44`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18, flexShrink: 0 }}>🏷️</div>
-              <div style={{ flex: 1 }}>
-                <div style={{ fontWeight: 600, fontSize: 14, marginBottom: 4 }}>{g.desc}</div>
-                <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
-                  <span style={{ background: `${g.color}22`, color: g.color, borderRadius: 6, padding: "2px 8px", fontSize: 11, fontWeight: 600 }}>{g.cat}</span>
-                  <span style={{ fontSize: 12, color: C.muted }}>📅 {g.date}</span>
-                  <span style={{ fontSize: 12, color: C.muted, display: "flex", alignItems: "center", gap: 4 }}><Avatar initials={g.byInitials} size={18} color={C.blue} /> {g.by}</span>
+            <article key={g.id} className="gasto-row animate" style={{ "--c": g.color, "--d": `${i * 70}ms` }}>
+              <span className="gasto__icon">🏷️</span>
+              <div className="gasto__info">
+                <p className="gasto__desc">{g.desc}</p>
+                <div className="gasto__meta">
+                  <span className="gasto__cat">{g.cat}</span>
+                  <span className="gasto__date">📅 {g.date}</span>
+                  <span className="gasto__by"><Avatar initials={g.byInitials} size={18} color={COLORS.blue} /> {g.by}</span>
                 </div>
               </div>
-              <span style={{ fontSize: 18, fontWeight: 800, color: C.orange }}>${g.amount.toLocaleString()}</span>
-            </div>
+              <span className="gasto__amount">${g.amount.toLocaleString()}</span>
+            </article>
           ))}
         </div>
       </ScrollArea>
-    </div>
+    </section>
   );
 }
 
 // ═══════════════════════════════════════════════════════════════
 // VIEW: REPORTES
 // ═══════════════════════════════════════════════════════════════
-const PAY_METHOD_COLORS = { "Efectivo": C.accent, "MP / QR": C.green, "Tarjeta": C.purple };
+const PAY_METHOD_COLORS = { "Efectivo": COLORS.accent, "MP / QR": COLORS.green, "Tarjeta": COLORS.purple };
 
 export function ReportesView({ user }) {
   const [period, setPeriod] = useState("Esta semana");
-  // report.period distinto del period activo ⇒ todavía cargando ese periodo
   const [report, setReport] = useState(null);
 
   useEffect(() => {
@@ -991,81 +925,81 @@ export function ReportesView({ user }) {
   const deudoresReport = loading ? [] : report.deudores;
 
   const kpis = summary ? [
-    { icon: "💲", label: "Ventas", value: `$${summary.kpis.ventas.toLocaleString()}`, sub: period.toLowerCase(), color: C.green },
-    { icon: "🎫", label: "Transacciones", value: `${summary.kpis.transacciones}`, sub: "ventas", color: C.purple },
-    { icon: "📉", label: "Gastos", value: `$${summary.kpis.gastos.toLocaleString()}`, sub: period.toLowerCase(), color: C.danger },
-    { icon: "📈", label: "Ganancia neta", value: `$${summary.kpis.gananciaNeta.toLocaleString()}`, sub: "ventas − gastos", color: C.accent },
-    { icon: "👥", label: "Deuda pendiente", value: `$${summary.kpis.deudaPendiente.toLocaleString()}`, sub: `${summary.kpis.deudoresCount} deudores`, color: C.warn },
+    { icon: "💲", label: "Ventas", value: `$${summary.kpis.ventas.toLocaleString()}`, sub: period.toLowerCase(), color: COLORS.green },
+    { icon: "🎫", label: "Transacciones", value: `${summary.kpis.transacciones}`, sub: "ventas", color: COLORS.purple },
+    { icon: "📉", label: "Gastos", value: `$${summary.kpis.gastos.toLocaleString()}`, sub: period.toLowerCase(), color: COLORS.danger },
+    { icon: "📈", label: "Ganancia neta", value: `$${summary.kpis.gananciaNeta.toLocaleString()}`, sub: "ventas − gastos", color: COLORS.accent },
+    { icon: "👥", label: "Deuda pendiente", value: `$${summary.kpis.deudaPendiente.toLocaleString()}`, sub: `${summary.kpis.deudoresCount} deudores`, color: COLORS.warn },
   ] : [];
   const donutSegments = summary
-    ? summary.paymentMethods.map(m => ({ ...m, color: PAY_METHOD_COLORS[m.label] || C.muted }))
+    ? summary.paymentMethods.map(m => ({ ...m, color: PAY_METHOD_COLORS[m.label] || COLORS.muted }))
     : [];
-  const sc = { "Al Día": C.accent, "En Seguimiento": C.warn, "Atrasado": C.orange, "Crítico": C.danger };
+  const sc = { "Al Día": COLORS.accent, "En Seguimiento": COLORS.warn, "Atrasado": COLORS.orange, "Crítico": COLORS.danger };
 
   return (
-    <div style={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden", background: C.bg }}>
+    <section className="view">
       <PageHeader title="Reportes & Analytics" user={user} />
       <ScrollArea>
-        <div style={{ display: "flex", gap: 4, marginBottom: 24 }}>
+        <div className="periods">
           {["Hoy", "Esta semana", "Este mes"].map(p => (
-            <button key={p} onClick={() => setPeriod(p)} style={{ padding: "8px 20px", borderRadius: 20, border: `1px solid ${period === p ? C.accent : C.border}`, background: period === p ? `${C.accent}22` : "transparent", color: period === p ? C.accent : C.muted, fontSize: 14, fontWeight: 600, cursor: "pointer" }}>{p}</button>
+            <button key={p} className={`period${period === p ? " period--active" : ""}`} onClick={() => setPeriod(p)}>{p}</button>
           ))}
         </div>
         {loading ? (
-          <div style={{ textAlign: "center", padding: "80px 0", color: C.muted }}>
-            <div style={{ fontSize: 32, marginBottom: 12, opacity: .4 }}>📊</div>
-            <p style={{ margin: 0, fontSize: 13 }}>Cargando reportes…</p>
+          <div className="state-msg">
+            <p className="state-msg__emoji">📊</p>
+            <p>Cargando reportes…</p>
           </div>
         ) : !summary ? (
-          <div style={{ textAlign: "center", padding: "80px 0", color: C.muted }}>
-            <div style={{ fontSize: 32, marginBottom: 12, opacity: .4 }}>⚠️</div>
-            <p style={{ margin: 0, fontSize: 13 }}>No se pudieron cargar los reportes.</p>
+          <div className="state-msg">
+            <p className="state-msg__emoji">⚠️</p>
+            <p>No se pudieron cargar los reportes.</p>
           </div>
         ) : (
           <>
-            <div style={{ display: "flex", gap: 12, marginBottom: 24, flexWrap: "wrap" }}>
+            <div className="kpis">
               {kpis.map((k, i) => (
-                <div key={k.label} style={{ flex: 1, minWidth: 140, background: C.card, border: `1px solid ${C.border}`, borderRadius: 12, padding: "16px 18px", opacity: 0, animation: `fadeUp .4s ease ${i * .07}s both` }}>
-                  <div style={{ fontSize: 11, color: C.muted, marginBottom: 6 }}>{k.icon} {k.label}</div>
-                  <div style={{ fontSize: 22, fontWeight: 800, color: k.color }}>{k.value}</div>
-                  <div style={{ fontSize: 11, color: C.muted, marginTop: 4 }}>{k.sub}</div>
-                </div>
+                <article key={k.label} className="kpi" style={{ "--c": k.color, "--d": `${i * 70}ms` }}>
+                  <p className="kpi__label">{k.icon} {k.label}</p>
+                  <p className="kpi__value">{k.value}</p>
+                  <p className="kpi__sub">{k.sub}</p>
+                </article>
               ))}
             </div>
-            <div style={{ display: "grid", gridTemplateColumns: "2fr 1fr", gap: 16, marginBottom: 24 }}>
-              <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 12, padding: "20px 24px" }}>
-                <h4 style={{ margin: "0 0 16px", fontSize: 14, fontWeight: 700 }}>📊 Ventas — {period}</h4>
+            <div className="report-grid">
+              <section className="card-pad report-card">
+                <h4 className="report-card__title">📊 Ventas — {period}</h4>
                 <BarChart data={summary.weeklySales} height={220} />
-              </div>
-              <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 12, padding: "20px 24px" }}>
-                <h4 style={{ margin: "0 0 20px", fontSize: 14, fontWeight: 700 }}>💲 Métodos de pago</h4>
+              </section>
+              <section className="card-pad report-card">
+                <h4 className="report-card__title">💲 Métodos de pago</h4>
                 {donutSegments.length > 0 ? (
                   <DonutChart segments={donutSegments} size={180} thickness={30} />
                 ) : (
-                  <div style={{ textAlign: "center", padding: "40px 0", color: C.muted, fontSize: 13 }}>Sin ventas en este periodo</div>
+                  <p className="report-empty">Sin ventas en este periodo</p>
                 )}
-              </div>
+              </section>
             </div>
-            <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 12, overflow: "hidden" }}>
-              <div style={{ padding: "16px 20px", borderBottom: `1px solid ${C.border}`, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                <h4 style={{ margin: 0, fontSize: 14, fontWeight: 700 }}>👥 Reporte de Deudores</h4>
-                <span style={{ fontSize: 12, color: C.muted }}>📅 Al {new Date().toLocaleDateString("es-MX")}</span>
+            <div className="data-card">
+              <div className="data-card__title-row">
+                <h4 className="data-card__title">👥 Reporte de Deudores</h4>
+                <span className="data-card__date">📅 Al {new Date().toLocaleDateString("es-MX")}</span>
               </div>
-              <div style={{ display: "grid", gridTemplateColumns: "2fr 1fr 1fr 1fr 1fr", padding: "10px 20px", borderBottom: `1px solid ${C.border}`, fontSize: 11, color: C.muted, fontWeight: 700, letterSpacing: 1, textTransform: "uppercase" }}>
-                <span>Cliente</span><span>Total Deuda</span><span style={{ color: C.green }}>Pagado</span><span style={{ color: C.warn }}>Pendiente</span><span>Estado</span>
+              <div className="report-head">
+                <span>Cliente</span><span>Total Deuda</span><span className="report-head__paid">Pagado</span><span className="report-head__pending">Pendiente</span><span>Estado</span>
               </div>
               {deudoresReport.length === 0 && (
-                <div style={{ textAlign: "center", padding: "32px 0", color: C.muted, fontSize: 13 }}>Sin deudores registrados 🎉</div>
+                <p className="report-empty">Sin deudores registrados 🎉</p>
               )}
               {deudoresReport.map((d, i) => (
-                <div key={i} className="feh-fade" style={{ display: "grid", gridTemplateColumns: "2fr 1fr 1fr 1fr 1fr", padding: "12px 20px", borderBottom: `1px solid ${C.border}`, fontSize: 13, alignItems: "center", animationDelay: `${i * .06}s` }}>
-                  <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                    <Avatar initials={d.initials} size={30} color={sc[d.status] || C.muted} />
-                    <span style={{ fontWeight: 500 }}>{d.name}</span>
+                <div key={i} className="report-row animate" style={{ "--d": `${i * 60}ms` }}>
+                  <div className="report-row__client">
+                    <Avatar initials={d.initials} size={30} color={sc[d.status] || COLORS.muted} />
+                    <span className="report-row__client-name">{d.name}</span>
                   </div>
                   <span>${d.totalDebt.toLocaleString()}.00</span>
-                  <span style={{ color: C.green }}>${d.paid.toLocaleString()}.00</span>
-                  <span style={{ color: C.warn }}>${d.pending.toLocaleString()}.00</span>
+                  <span className="report-row__paid">${d.paid.toLocaleString()}.00</span>
+                  <span className="report-row__pending">${d.pending.toLocaleString()}.00</span>
                   <StatusBadge status={d.status} />
                 </div>
               ))}
@@ -1073,6 +1007,6 @@ export function ReportesView({ user }) {
           </>
         )}
       </ScrollArea>
-    </div>
+    </section>
   );
 }
