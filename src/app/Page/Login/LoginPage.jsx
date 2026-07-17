@@ -62,14 +62,14 @@ function Input({ label, icon, type = "text", placeholder, value, onChange, showE
 
 function Stepper({ step }) {
     return (
-        <div className="login-stepper">
+        <ol className="login-stepper">
             {[1, 2, 3].map((n, i) => (
-                <div key={n} className="login-step-item">
+                <li key={n} className="login-step-item">
                     <span className={`login-step-circle${step === n ? " login-step-circle--active" : ""}${step > n ? " login-step-circle--done" : ""}`}>{step > n ? "✓" : n}</span>
                     {i < 2 && <span className={`login-step-line${step > n ? " login-step-line--done" : ""}`} />}
-                </div>
+                </li>
             ))}
-        </div>
+        </ol>
     );
 }
 
@@ -172,14 +172,14 @@ function Step2({ email, onNext, onBack }) {
 
     return (
         <form onSubmit={verify}>
-            <div className="login-verify">
+            <header className="login-verify">
                 <span className="login-verify__icon">🛡️</span>
                 <h3 className="login-verify__title">Verificación</h3>
                 <p className="login-verify__text">
                     Enviamos un código de 6 dígitos a<br />
                     <span className="login-verify__email">{email}</span>
                 </p>
-            </div>
+            </header>
             <aside className="login-banner">
                 <span className="login-banner__text">📩 Revisa tu bandeja de entrada (y spam) e ingresa el código.</span>
             </aside>
@@ -208,19 +208,19 @@ function Step2({ email, onNext, onBack }) {
 // ─── Step 3 — éxito ───────────────────────────────────────────────────────────
 function Step3({ name, onGoToStore, loading }) {
     return (
-        <div style={{ textAlign: "center" }}>
-            <div className="login-success-icon">
+        <section className="login-success">
+            <span className="login-success-icon">
                 <svg width="28" height="28" viewBox="0 0 24 24" fill="none">
                     <path className="login-success-check" d="M4 12.5L9.5 18L20 6" stroke="#00d4aa" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
                 </svg>
-            </div>
+            </span>
             <h3 className="login-success__title">¡Cuenta creada!</h3>
             <p className="login-success__text">Bienvenido/a, <strong>{name}</strong></p>
             <p className="login-success__text login-success__text--gap">Tu cuenta ha sido verificada exitosamente</p>
             <button className="login-btn" onClick={onGoToStore} disabled={loading}>
                 {loading ? <Spinner /> : "Ir a la tienda"}
             </button>
-        </div>
+        </section>
     );
 }
 
@@ -303,24 +303,24 @@ export default function LoginPage({ onLoginSuccess }) {
                 {mode === "register" && <Stepper step={regStep} />}
 
                 {mode === "login" && (
-                    <div key="login" className="login-step">
+                    <section key="login" className="login-step">
                         <LoginScreen onLogin={handleLogin} onRegister={() => { setMode("register"); setRegStep(1); }} />
-                    </div>
+                    </section>
                 )}
                 {mode === "register" && regStep === 1 && (
-                    <div key="reg-1" className="login-step">
+                    <section key="reg-1" className="login-step">
                         <Step1 onNext={handleStep1} onLogin={() => setMode("login")} />
-                    </div>
+                    </section>
                 )}
                 {mode === "register" && regStep === 2 && (
-                    <div key="reg-2" className="login-step">
+                    <section key="reg-2" className="login-step">
                         <Step2 email={regData.email} onNext={handleStep2} onBack={() => setRegStep(1)} />
-                    </div>
+                    </section>
                 )}
                 {mode === "register" && regStep === 3 && (
-                    <div key="reg-3" className="login-step">
+                    <section key="reg-3" className="login-step">
                         <Step3 name={regData.name} onGoToStore={handleGoStore} loading={goingToStore} />
-                    </div>
+                    </section>
                 )}
             </section>
         </main>

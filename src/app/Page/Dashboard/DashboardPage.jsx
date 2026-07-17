@@ -1,5 +1,5 @@
 "use client";
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect, Fragment } from "react";
 import {
     DeudoresView, TicketsView, InventarioView,
     GastosView, ReportesView,
@@ -33,10 +33,11 @@ function Sidebar({ user, activeNav, onNav, onLogout, ticketsCount, lowStockCount
             </header>
             <section className="sidebar__user">
                 <Avatar initials={user.name[0]} />
-                <div>
-                    <p className="sidebar__user-name">{user.name}</p>
-                    <p className="sidebar__user-role">{user.role}</p>
-                </div>
+                <p>
+                    <span className="sidebar__user-name">{user.name}</span>
+                    <br />
+                    <span className="sidebar__user-role">{user.role}</span>
+                </p>
             </section>
             <nav className="nav">
                 {nav.map(n => (
@@ -132,41 +133,44 @@ function VentasView({ user, products, cart, setCart }) {
                 <div className="topbar__right">
                     <span className="topbar__clock">📶 💬 {now.toLocaleTimeString("es-MX", { hour: "2-digit", minute: "2-digit" })}</span>
                     <Avatar initials={user.name[0]} size={32} />
-                    <div>
-                        <p className="topbar__meta-name">{user.name}</p>
-                        <p className="topbar__meta-role">Operador activo</p>
-                    </div>
+                    <p>
+                        <span className="topbar__meta-name">{user.name}</span>
+                        <br />
+                        <span className="topbar__meta-role">Operador activo</span>
+                    </p>
                 </div>
             </header>
 
             <div className="pos-body">
                 <section className="pos-products">
                     <div className="pos-products__toolbar">
-                        <div className="search">
+                        <search className="search">
                             <span className="search__icon">🔍</span>
                             <input className="search__input" placeholder="Buscar producto..." value={search} onChange={e => setSearch(e.target.value)} />
-                        </div>
-                        <div className="chips pos-products__filters">
-                            {CATS.map(c => <button key={c} className={`chip${cat === c ? " chip--active" : ""}`} onClick={() => setCat(c)}>{catIcon(c)} {c}</button>)}
-                        </div>
+                        </search>
+                        <ul className="chips pos-products__filters">
+                            {CATS.map(c => <li key={c}><button className={`chip${cat === c ? " chip--active" : ""}`} onClick={() => setCat(c)}>{catIcon(c)} {c}</button></li>)}
+                        </ul>
                     </div>
 
-                    <div className="products-grid">
+                    <ul className="products-grid">
                         {filtered.map(p => {
                             const inCart = cart.find(i => i.id === p.id);
                             return (
-                                <button key={p.id} className={`product-card${inCart ? " product-card--has-cart" : ""}`} onClick={() => addToCart(p)}>
-                                    {p.stock !== null && <span className={`product-card__stock${p.stock <= 5 ? " product-card__stock--low" : ""}`}>{p.stock} left</span>}
-                                    {inCart && <span className="product-card__in-cart">x{inCart.qty} en carrito</span>}
-                                    {p.imgSrc
-                                        ? <Image className="product-card__media" src={p.imgSrc} alt={p.name} width={300} height={90} />
-                                        : <p className="product-card__emoji">{p.emoji}</p>}
-                                    <p className="product-card__name">{p.name}</p>
-                                    <p className="product-card__price">${p.price}</p>
-                                </button>
+                                <li key={p.id}>
+                                    <button className={`product-card${inCart ? " product-card--has-cart" : ""}`} onClick={() => addToCart(p)}>
+                                        {p.stock !== null && <span className={`product-card__stock${p.stock <= 5 ? " product-card__stock--low" : ""}`}>{p.stock} left</span>}
+                                        {inCart && <span className="product-card__in-cart">x{inCart.qty} en carrito</span>}
+                                        {p.imgSrc
+                                            ? <Image className="product-card__media" src={p.imgSrc} alt={p.name} width={300} height={90} />
+                                            : <p className="product-card__emoji">{p.emoji}</p>}
+                                        <p className="product-card__name">{p.name}</p>
+                                        <p className="product-card__price">${p.price}</p>
+                                    </button>
+                                </li>
                             );
                         })}
-                    </div>
+                    </ul>
                 </section>
 
                 <aside className="cart">
@@ -174,44 +178,49 @@ function VentasView({ user, products, cart, setCart }) {
                         <span>🛒 Orden actual</span>
                         <Avatar initials={user.name[0]} size={28} />
                     </header>
-                    <div className="cart__body">
-                        {cart.length === 0 ? (
+                    {cart.length === 0 ? (
+                        <div className="cart__body">
                             <div className="cart__empty">
                                 <p className="cart__empty-emoji">🛒</p>
                                 <p>Carrito vacío</p>
                                 <p className="cart__empty-hint">Toca un producto para agregar</p>
                             </div>
-                        ) : cart.map(item => (
-                            <article key={item.id} className="cart__item">
-                                <ProductThumb p={item} size={32} />
-                                <div className="cart__item-info">
-                                    <p className="cart__item-name">{item.name}</p>
-                                    <p className="cart__item-price">${item.price * item.qty}</p>
-                                </div>
-                                <div className="cart__qty">
-                                    <button className="qty-btn" onClick={() => changeQty(item.id, -1)}>−</button>
-                                    <span className="cart__qty-val">{item.qty}</span>
-                                    <button className="qty-btn" onClick={() => changeQty(item.id, 1)}>+</button>
-                                </div>
-                            </article>
-                        ))}
-                    </div>
-                    <footer className="cart__foot">
-                        {[["Subtotal", `$${subtotal.toFixed(2)}`], ["IVA (16%)", `$${iva.toFixed(2)}`]].map(([l, v]) => (
-                            <div key={l} className="cart__row">
-                                <span className="cart__row-label">{l}</span><span>{v}</span>
-                            </div>
-                        ))}
-                        <div className="cart__total">
-                            <span>Total</span><span className="cart__total-value">${total.toFixed(2)}</span>
                         </div>
+                    ) : (
+                        <ul className="cart__body">
+                            {cart.map(item => (
+                                <li key={item.id} className="cart__item">
+                                    <ProductThumb p={item} size={32} />
+                                    <div className="cart__item-info">
+                                        <p className="cart__item-name">{item.name}</p>
+                                        <p className="cart__item-price">${item.price * item.qty}</p>
+                                    </div>
+                                    <div className="cart__qty">
+                                        <button className="qty-btn" onClick={() => changeQty(item.id, -1)}>−</button>
+                                        <span className="cart__qty-val">{item.qty}</span>
+                                        <button className="qty-btn" onClick={() => changeQty(item.id, 1)}>+</button>
+                                    </div>
+                                </li>
+                            ))}
+                        </ul>
+                    )}
+                    <footer className="cart__foot">
+                        <dl className="cart__totals">
+                            {[["Subtotal", `$${subtotal.toFixed(2)}`], ["IVA (16%)", `$${iva.toFixed(2)}`]].map(([l, v]) => (
+                                <Fragment key={l}>
+                                    <dt>{l}</dt><dd>{v}</dd>
+                                </Fragment>
+                            ))}
+                            <dt className="cart__totals--strong">Total</dt>
+                            <dd className="cart__totals--strong">${total.toFixed(2)}</dd>
+                        </dl>
                         <p className="cart__oper">
                             <Avatar initials={user.name[0]} size={22} />Operando: {user.name}
                         </p>
-                        <div className="cart__actions">
-                            <button className="btn btn--ghost" disabled={cart.length === 0} onClick={() => setShowGuardar(true)}>💾 Guardar</button>
-                            <button className="btn btn--primary btn--pay" disabled={cart.length === 0} onClick={() => setShowPago(true)}>Cobrar ›</button>
-                        </div>
+                        <menu className="cart__actions">
+                            <li><button className="btn btn--ghost" disabled={cart.length === 0} onClick={() => setShowGuardar(true)}>💾 Guardar</button></li>
+                            <li><button className="btn btn--primary btn--pay" disabled={cart.length === 0} onClick={() => setShowPago(true)}>Cobrar ›</button></li>
+                        </menu>
                     </footer>
                 </aside>
             </div>
@@ -235,10 +244,11 @@ function StoreView({ user, products, onLogout }) {
             <header className="store__header">
                 <div className="store__brand">
                     <span className="store__brand-emoji">🏋️</span>
-                    <div>
-                        <p className="store__brand-name">Fit &amp; Ecoree House</p>
-                        <p className="store__brand-sub">Tienda en línea</p>
-                    </div>
+                    <p>
+                        <span className="store__brand-name">Fit &amp; Ecoree House</span>
+                        <br />
+                        <span className="store__brand-sub">Tienda en línea</span>
+                    </p>
                 </div>
                 <nav className="store__tabs">
                     {[{ id: "tienda", icon: "🏪", label: "Tienda" }, { id: "pedidos", icon: "📋", label: "Mis pedidos" }, { id: "perfil", icon: "👤", label: "Mi perfil" }].map(t => (
@@ -255,28 +265,30 @@ function StoreView({ user, products, onLogout }) {
 
             {tab === "tienda" && (
                 <main className="store__main">
-                    <div className="search store__search">
+                    <search className="search store__search">
                         <span className="search__icon">🔍</span>
                         <input className="search__input" placeholder="Buscar productos..." value={search} onChange={e => setSearch(e.target.value)} />
-                    </div>
-                    <div className="chips store__filters">
-                        {CATS.map(c => <button key={c} className={`chip${cat === c ? " chip--active" : ""}`} onClick={() => setCat(c)}>{catIcon(c)} {c}</button>)}
-                    </div>
-                    <section className="store-grid">
+                    </search>
+                    <ul className="chips store__filters">
+                        {CATS.map(c => <li key={c}><button className={`chip${cat === c ? " chip--active" : ""}`} onClick={() => setCat(c)}>{catIcon(c)} {c}</button></li>)}
+                    </ul>
+                    <ul className="store-grid">
                         {filtered.map(p => (
-                            <article key={p.id} className="store-card">
-                                {p.imgSrc
-                                    ? <Image className="store-card__media" src={p.imgSrc} alt={p.name} width={300} height={110} />
-                                    : <p className="store-card__emoji">{p.emoji}</p>}
-                                <p className="store-card__name">{p.name}</p>
-                                <p className="store-card__cat">{p.cat}</p>
-                                <div className="store-card__foot">
-                                    <span className="store-card__price">${p.price}</span>
-                                    <button className="add-btn" onClick={() => addToCart(p)}>+</button>
-                                </div>
-                            </article>
+                            <li key={p.id}>
+                                <article className="store-card">
+                                    {p.imgSrc
+                                        ? <Image className="store-card__media" src={p.imgSrc} alt={p.name} width={300} height={110} />
+                                        : <p className="store-card__emoji">{p.emoji}</p>}
+                                    <p className="store-card__name">{p.name}</p>
+                                    <p className="store-card__cat">{p.cat}</p>
+                                    <div className="store-card__foot">
+                                        <span className="store-card__price">${p.price}</span>
+                                        <button className="add-btn" onClick={() => addToCart(p)}>+</button>
+                                    </div>
+                                </article>
+                            </li>
                         ))}
-                    </section>
+                    </ul>
                 </main>
             )}
             {tab === "pedidos" && (
@@ -284,24 +296,26 @@ function StoreView({ user, products, onLogout }) {
                     <h2>📋 Mis pedidos</h2>
                     {cart.length === 0 ? <p className="store-panel__muted">Agrega productos desde la tienda.</p> : (
                         <div className="order-box">
-                            {cart.map(i => (
-                                <article key={i.id} className="order-row">
-                                    <ProductThumb p={i} size={28} /><span className="order-row__name">{i.name} × {i.qty}</span><span className="order-row__price">${i.price * i.qty}</span>
-                                </article>
-                            ))}
-                            <div className="order-total"><span>Total</span><span className="order-total__value">${cartTotal.toFixed(2)}</span></div>
+                            <ul className="order-list">
+                                {cart.map(i => (
+                                    <li key={i.id} className="order-row">
+                                        <ProductThumb p={i} size={28} /><span className="order-row__name">{i.name} × {i.qty}</span><span className="order-row__price">${i.price * i.qty}</span>
+                                    </li>
+                                ))}
+                            </ul>
+                            <p className="order-total"><span>Total</span><span className="order-total__value">${cartTotal.toFixed(2)}</span></p>
                         </div>
                     )}
                 </section>
             )}
             {tab === "perfil" && (
                 <section className="store-panel store-panel--narrow">
-                    <div className="profile-card">
+                    <article className="profile-card">
                         <Avatar initials={user.name[0]} size={64} color="#7c3aed" />
                         <h2 className="profile-card__name">{user.name}</h2>
                         <p className="profile-card__sub">Cliente · Fit &amp; Ecoree House</p>
                         <button className="profile-card__logout" onClick={onLogout}>Cerrar sesión</button>
-                    </div>
+                    </article>
                 </section>
             )}
         </div>

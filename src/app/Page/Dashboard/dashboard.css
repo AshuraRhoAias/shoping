@@ -407,6 +407,7 @@
 .debt-total__count { font-weight: 700; }
 .debt-total__sub { font-size: 12px; color: var(--muted); }
 .debt-total__amount { font-size: 24px; font-weight: 800; color: var(--accent); text-align: right; }
+.debt-total__sub--right { text-align: right; }
 
 .toolbar-row { display: flex; gap: 12px; margin-bottom: 16px; align-items: center; }
 .filters { display: flex; gap: 8px; margin-bottom: 20px; flex-wrap: wrap; }
@@ -553,4 +554,103 @@
 
 @media (max-width: 720px) {
   .report-grid { grid-template-columns: 1fr; }
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   Semántica adicional: listas (ul/li), menús de acciones,
+   pares etiqueta-valor (dl) y tablas reales.
+   ═══════════════════════════════════════════════════════════════ */
+
+/* ─── listas: quitar viñetas/espaciado de navegador, el hijo <li>
+   se vuelve invisible (display:contents) para no romper el layout
+   flex/grid que ya tenía el contenedor ─────────────────────────── */
+.chips,
+.products-grid,
+.store-grid,
+.tickets-grid,
+.debt-list,
+.debt-stats,
+.filters,
+.cart__body,
+.order-list,
+.mesa-grid,
+.operators,
+.pay-methods,
+.low-stock__tags,
+.ticket-items__list,
+.ticket__lines,
+.gasto-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.bar-chart__plot { list-style: none; margin: 0; }
+.chips > li,
+.products-grid > li,
+.store-grid > li,
+.tickets-grid > li,
+.debt-list > li,
+.debt-stats > li,
+.filters > li,
+.cart__body > li,
+.order-list > li,
+.mesa-grid > li,
+.operators > li,
+.pay-methods > li,
+.low-stock__tags > li {
+  display: contents;
+}
+.products-grid { padding: 16px 24px; }
+.low-stock__tags { display: flex; gap: 8px; flex-wrap: wrap; }
+.debt-stats { margin-bottom: 20px; }
+.filters { margin-bottom: 20px; }
+
+/* pequeños resets puntuales que antes eran style inline */
+.modal-subtitle { font-size: 13px; color: var(--muted); margin-bottom: 16px; }
+.field__label--inline { margin: 0; }
+.toolbar-row--wrap { flex-wrap: wrap; }
+
+/* ─── menu: grupos de acciones (mismo reset que las listas) ────── */
+.cart__actions,
+.ticket__actions,
+.debt-card__actions {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.cart__actions > li,
+.ticket__actions > li,
+.debt-card__actions > li {
+  display: contents;
+}
+
+/* ─── dl: pares etiqueta/valor del resumen del carrito ─────────── */
+.cart__totals { display: grid; grid-template-columns: 1fr auto; row-gap: 6px; margin: 0 0 16px; }
+.cart__totals dt { font-size: 13px; color: var(--muted); font-weight: 400; }
+.cart__totals dd { font-size: 13px; margin: 0; text-align: right; }
+.cart__totals dt.cart__totals--strong { color: var(--text); font-weight: 700; font-size: 15px; }
+.cart__totals dd.cart__totals--strong { font-weight: 700; font-size: 15px; color: var(--accent); }
+
+/* ─── table real: Inventario y Reporte de Deudores ──────────────
+   El grid-template-columns ya declarado en .inv-head/.inv-row y
+   .report-head/.report-row se conserva tal cual (son selectores de
+   clase, no de etiqueta) — solo se neutraliza el algoritmo de tabla
+   nativo del navegador para que cada <tr> siga siendo su propio
+   grid, igual que antes con los <div>. ──────────────────────────── */
+table.data-card,
+.data-card table {
+  display: block;
+  width: 100%;
+  border-collapse: collapse;
+}
+table.data-card thead, table.data-card tbody,
+.data-card table thead, .data-card table tbody {
+  display: contents;
+}
+table.data-card th, table.data-card td,
+.data-card table th, .data-card table td {
+  text-align: left;
+  font: inherit;
+  margin: 0;
+  padding: 0;
 }
