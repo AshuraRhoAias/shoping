@@ -8,7 +8,7 @@ export const metadata = {
 export default function RootLayout({ children }) {
   return (
     <html lang="es">
-      <body style={{ fontFamily: "system-ui, -apple-system, sans-serif" }}>
+      <body>
         {children}
       </body>
     </html>
