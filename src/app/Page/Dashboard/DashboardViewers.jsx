@@ -1,6 +1,6 @@
 "use client";
 import { useState, useEffect, useRef } from "react";
-import { DeudoresAPI, TicketsAPI, ProductsAPI, GastosAPI } from "@/lib/api.service";
+import { DeudoresAPI, TicketsAPI, ProductsAPI, GastosAPI, ReportsAPI } from "@/lib/api.service";
 import Image from "next/image";
 
 // ═══════════════════════════════════════════════════════════════
@@ -322,7 +322,7 @@ export function RegistrarGastoModal({ onClose, onSave }) {
 // ═══════════════════════════════════════════════════════════════
 // MODAL: AGREGAR PRODUCTO — con carga de imagen
 // ═══════════════════════════════════════════════════════════════
-const CATS_FOR_PRODUCT = ["Bebidas", "Snacks", "Suplementos", "Servicios", "Ropa"];
+const CATS_FOR_PRODUCT = ["Bebidas", "Snacks", "Suplementos", "Servicios", "Ropa", "Accesorios"];
 
 export function AgregarProductoModal({ onClose, onSave }) {
   const [name, setName] = useState("");
@@ -563,91 +563,7 @@ const STATUS_META = {
   "Crítico": { color: C.danger, icon: "🔴", range: "60+ días", cardBg: `${C.danger}11` },
 };
 
-const INITIAL_DEUDORES = [
-  { id: 1, name: "Carlos Mendoza", initials: "CM", days: 6, phone: "555-1234", amount: 555, status: "Al Día" },
-  { id: 2, name: "Sandra Ruiz", initials: "SR", days: 4, phone: "555-3456", amount: 500, status: "Al Día" },
-  { id: 3, name: "Valeria Cruz", initials: "VC", days: 3, phone: "555-0123", amount: 500, status: "Al Día" },
-  { id: 4, name: "Laura Gómez", initials: "LG", days: 23, phone: "555-5678", amount: 640, status: "En Seguimiento" },
-  { id: 5, name: "Javier Morales", initials: "JM", days: 15, phone: "555-6789", amount: 600, status: "En Seguimiento" },
-  { id: 6, name: "Roberto Leal", initials: "RL", days: 36, phone: "555-7890", amount: 900, status: "Atrasado" },
-  { id: 7, name: "Miguel Torres", initials: "MT", days: 67, phone: "555-2345", amount: 650, status: "Crítico" },
-  { id: 8, name: "Carmen Vega", initials: "CV", days: 72, phone: "555-9012", amount: 700, status: "Crítico" },
-];
-
-// Tickets con cart para recuperar
-const INITIAL_TICKETS = [
-  {
-    id: 1, location: "Mesa 3", time: "Hace 39 min", urgent: false, total: 150,
-    items: [{ name: "2x Café Americano", price: 90 }, { name: "1x Barra Proteína", price: 60 }],
-    note: "Sin azúcar", savedBy: "María López", client: "Carlos M.",
-    cart: [{ id: 1, name: "Café Americano", emoji: "☕", price: 45, qty: 2, imgSrc: null }, { id: 7, name: "Barra Proteína", emoji: "🍫", price: 60, qty: 1, imgSrc: null }]
-  },
-  {
-    id: 2, location: "Mesa 7", time: "Hace 1h 9min", urgent: true, total: 385,
-    items: [{ name: "3x Proteína Shake", price: 255 }, { name: "2x Yogurt + Granola", price: 130 }],
-    note: null, savedBy: "José Ramírez", client: null,
-    cart: [{ id: 6, name: "Proteína Shake", emoji: "💪", price: 85, qty: 3, imgSrc: null }, { id: 10, name: "Yogurt + Granola", emoji: "🫙", price: 65, qty: 2, imgSrc: null }]
-  },
-  {
-    id: 3, location: "Mostrador", time: "Hace 24 min", urgent: false, total: 125,
-    items: [{ name: "1x Frappé Chocolate", price: 70 }, { name: "1x Frutos Secos", price: 55 }],
-    note: "Para llevar", savedBy: "Admin", client: "Sandra R.",
-    cart: [{ id: 3, name: "Frappé Chocolate", emoji: "🧋", price: 70, qty: 1, imgSrc: null }, { id: 9, name: "Frutos Secos", emoji: "🥜", price: 55, qty: 1, imgSrc: null }]
-  },
-];
-
-// Productos con imgSrc (null = sin imagen, muestra emoji)
-const INITIAL_PRODUCTS = [
-  { id: 1, name: "Café Americano", emoji: "☕", cat: "Bebidas", price: 45, stock: 100, status: "OK", imgSrc: null },
-  { id: 2, name: "Café Latte", emoji: "🥛", cat: "Bebidas", price: 55, stock: 100, status: "OK", imgSrc: null },
-  { id: 3, name: "Frappé Chocolate", emoji: "🧋", cat: "Bebidas", price: 70, stock: 80, status: "OK", imgSrc: null },
-  { id: 4, name: "Agua Natural 600ml", emoji: "💧", cat: "Bebidas", price: 20, stock: 50, status: "OK", imgSrc: null },
-  { id: 5, name: "Jugo Natural", emoji: "🍊", cat: "Bebidas", price: 40, stock: 30, status: "OK", imgSrc: null },
-  { id: 6, name: "Proteína Shake", emoji: "💪", cat: "Bebidas", price: 85, stock: 40, status: "OK", imgSrc: null },
-  { id: 7, name: "Barra Proteína", emoji: "🍫", cat: "Snacks", price: 60, stock: 25, status: "OK", imgSrc: null },
-  { id: 8, name: "Granola Natural", emoji: "🥣", cat: "Snacks", price: 45, stock: 20, status: "OK", imgSrc: null },
-  { id: 9, name: "Frutos Secos", emoji: "🥜", cat: "Snacks", price: 55, stock: 15, status: "OK", imgSrc: null },
-  { id: 10, name: "Yogurt + Granola", emoji: "🫙", cat: "Snacks", price: 65, stock: 18, status: "OK", imgSrc: null },
-  { id: 11, name: "Whey Protein 1kg", emoji: "🏆", cat: "Suplementos", price: 650, stock: 8, status: "Bajo", imgSrc: null },
-  { id: 12, name: "Creatina 300g", emoji: "⚡", cat: "Suplementos", price: 380, stock: 5, status: "Bajo", imgSrc: null },
-  { id: 13, name: "Pre-Workout", emoji: "🔥", cat: "Suplementos", price: 420, stock: 7, status: "Bajo", imgSrc: null },
-  { id: 14, name: "BCAA 200caps", emoji: "💊", cat: "Suplementos", price: 320, stock: 3, status: "Bajo", imgSrc: null },
-  { id: 15, name: "Mensualidad Gym", emoji: "🏃", cat: "Servicios", price: 500, stock: null, status: "OK", imgSrc: null },
-  { id: 16, name: "Clase Spinning", emoji: "🚴", cat: "Servicios", price: 80, stock: null, status: "OK", imgSrc: null },
-  { id: 17, name: "Entrenamiento Personal", emoji: "🥊", cat: "Servicios", price: 250, stock: null, status: "OK", imgSrc: null },
-  { id: 18, name: "Evaluación Física", emoji: "📋", cat: "Servicios", price: 150, stock: null, status: "OK", imgSrc: null },
-  { id: 19, name: "Playera Dry-Fit", emoji: "👕", cat: "Ropa", price: 180, stock: 12, status: "OK", imgSrc: null },
-  { id: 20, name: "Short Deportivo", emoji: "🩳", cat: "Ropa", price: 220, stock: 8, status: "Bajo", imgSrc: null },
-];
-
-const INITIAL_GASTOS = [
-  { id: 1, desc: "Mantenimiento equipos cardio", cat: "Equipo / Mantenimiento", date: "18 mar 2026", by: "José Ramírez", byInitials: "JR", amount: 850, color: "#f0ad4e" },
-  { id: 2, desc: "Sueldo quincenal staff", cat: "Sueldos", date: "16 mar 2026", by: "Admin", byInitials: "AD", amount: 6000, color: "#3fb950" },
-  { id: 3, desc: "Pago de luz y agua", cat: "Servicios (Luz, Agua, Internet)", date: "11 mar 2026", by: "María López", byInitials: "ML", amount: 1200, color: "#58a6ff" },
-  { id: 4, desc: "Proveedor proteínas", cat: "Proveedores", date: "6 mar 2026", by: "Admin", byInitials: "AD", amount: 4200, color: "#bc8cff" },
-  { id: 5, desc: "Renta local marzo", cat: "Renta / Local", date: "1 mar 2026", by: "Admin", byInitials: "AD", amount: 8500, color: "#f85149" },
-];
-
-const GASTOS_CATS_DIST = [
-  { label: "Renta / Local", value: 8500, color: "#f85149" },
-  { label: "Sueldos", value: 6000, color: "#3fb950" },
-  { label: "Proveedores", value: 4200, color: "#bc8cff" },
-  { label: "Servicios (Luz, Agua, Internet)", value: 1200, color: "#58a6ff" },
-  { label: "Equipo / Mantenimiento", value: 850, color: "#f0ad4e" },
-];
-
-const WEEK_SALES = [
-  { label: "Lun", value: 4800 }, { label: "Mar", value: 5100 }, { label: "Mié", value: 3900 },
-  { label: "Jue", value: 6200 }, { label: "Vie", value: 7500 }, { label: "Sáb", value: 8600 }, { label: "Dom", value: 5600 },
-];
-
-const PAY_METHODS = [
-  { label: "Efectivo", value: 45, color: C.accent },
-  { label: "Mercado Pago", value: 35, color: C.green },
-  { label: "Tarjeta", value: 20, color: C.purple },
-];
-
-const CATS_INV = ["Todos", "Bebidas", "Snacks", "Suplementos", "Servicios", "Ropa"];
+const CATS_INV = ["Todos", "Bebidas", "Snacks", "Suplementos", "Servicios", "Ropa", "Accesorios"];
 const GASTO_CATS_FILTER = ["Todos", "Renta / Local", "Proveedores", "Servicios", "Sueldos", "Equipo", "Marketing", "Limpieza"];
 
 // ─── Product thumbnail helper ─────────────────────────────────────────────────
@@ -671,12 +587,6 @@ export function ProductThumb({ p, size = 48 }) {
 }
 
 // ═══════════════════════════════════════════════════════════════
-// STATE CONTEXT — shared products so Ventas & Inventario sync
-// ═══════════════════════════════════════════════════════════════
-// We export initial data and a hook pattern; DashboardPage owns the state and passes down.
-export { INITIAL_PRODUCTS, INITIAL_DEUDORES, INITIAL_TICKETS, INITIAL_GASTOS };
-
-// ═══════════════════════════════════════════════════════════════
 // VIEW: DEUDORES
 // ═══════════════════════════════════════════════════════════════
 export function DeudoresView({ user }) {
@@ -691,7 +601,7 @@ export function DeudoresView({ user }) {
   useEffect(() => {
     DeudoresAPI.list()
       .then(data => setDeudores(data))
-      .catch(() => setDeudores(INITIAL_DEUDORES))   // fallback demo si no hay backend
+      .catch(err => console.error("Error al cargar deudores:", err))
       .finally(() => setLoadingD(false));
   }, []);
 
@@ -709,10 +619,8 @@ export function DeudoresView({ user }) {
         try {
           const { debtor } = await DeudoresAPI.create(data);
           setDeudores(p => [...p, debtor]);
-        } catch {
-          // fallback optimista si no hay backend
-          const initials = data.name.split(" ").map(w => w[0]).join("").slice(0, 2).toUpperCase();
-          setDeudores(p => [...p, { id: Date.now(), name: data.name, initials, days: 0, phone: data.phone || "—", amount: data.amount, status: "Al Día" }]);
+        } catch (err) {
+          console.error("Error al registrar deudor:", err);
         }
       }} />}
       <PageHeader title="Gestión de Deudores" user={user} />
@@ -778,8 +686,12 @@ export function DeudoresView({ user }) {
                       <Btn variant="primary" size="sm">💰 Registrar pago</Btn>
                       <Btn variant="danger" size="sm" onClick={async e => {
                         e.stopPropagation();
-                        try { await DeudoresAPI.delete(d.id); } catch { }
-                        setDeudores(p => p.filter(x => x.id !== d.id));
+                        try {
+                          await DeudoresAPI.delete(d.id);
+                          setDeudores(p => p.filter(x => x.id !== d.id));
+                        } catch (err) {
+                          console.error("Error al eliminar deudor:", err);
+                        }
                       }}>🗑 Eliminar</Btn>
                     </div>
                   )}
@@ -796,15 +708,8 @@ export function DeudoresView({ user }) {
 // ═══════════════════════════════════════════════════════════════
 // VIEW: TICKETS
 // ═══════════════════════════════════════════════════════════════
-export function TicketsView({ user, onRecover }) {
+export function TicketsView({ user, tickets, setTickets, onRecover }) {
   const [cobrarTicket, setCobrarTicket] = useState(null);
-  const [tickets, setTickets] = useState([]);
-
-  useEffect(() => {
-    TicketsAPI.list()
-      .then(data => setTickets(data))
-      .catch(() => setTickets(INITIAL_TICKETS));   // fallback demo
-  }, []);
 
   const active = tickets.length;
   const total = tickets.reduce((s, t) => s + t.total, 0);
@@ -813,8 +718,12 @@ export function TicketsView({ user, onRecover }) {
   return (
     <div style={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden", background: C.bg }}>
       {cobrarTicket && <CobrarTicketModal ticket={cobrarTicket} onClose={() => setCobrarTicket(null)} onConfirm={async (payment) => {
-        try { await TicketsAPI.charge(cobrarTicket.id, payment); } catch { }
-        setTickets(p => p.filter(t => t.id !== cobrarTicket.id));
+        try {
+          await TicketsAPI.charge(cobrarTicket.id, payment);
+          setTickets(p => p.filter(t => t.id !== cobrarTicket.id));
+        } catch (err) {
+          console.error("Error al cobrar ticket:", err);
+        }
         setCobrarTicket(null);
       }} />}
       <PageHeader title="Tickets Pendientes" user={user} />
@@ -850,10 +759,22 @@ export function TicketsView({ user, onRecover }) {
               </div>
               <div style={{ display: "flex", gap: 8, marginTop: 12 }}>
                 <button onClick={async () => {
-                  try { await TicketsAPI.delete(t.id); } catch { }
-                  setTickets(p => p.filter(x => x.id !== t.id));
+                  try {
+                    await TicketsAPI.delete(t.id);
+                    setTickets(p => p.filter(x => x.id !== t.id));
+                  } catch (err) {
+                    console.error("Error al eliminar ticket:", err);
+                  }
                 }} style={{ width: 36, height: 36, borderRadius: 8, background: `${C.danger}22`, border: `1px solid ${C.danger}44`, color: C.danger, cursor: "pointer", fontSize: 16 }}>🗑</button>
-                <Btn variant="ghost" onClick={() => { onRecover(t.cart); setTickets(p => p.filter(x => x.id !== t.id)); }}>🔄 Recuperar</Btn>
+                <Btn variant="ghost" onClick={async () => {
+                  try {
+                    await TicketsAPI.delete(t.id);
+                    setTickets(p => p.filter(x => x.id !== t.id));
+                    onRecover(t.cart);
+                  } catch (err) {
+                    console.error("Error al recuperar ticket:", err);
+                  }
+                }}>🔄 Recuperar</Btn>
                 <Btn variant="primary" onClick={() => setCobrarTicket(t)}>✅ Cobrar</Btn>
               </div>
             </div>
@@ -887,9 +808,8 @@ export function InventarioView({ user, products, setProducts }) {
     try {
       const { product } = await ProductsAPI.create(data);
       setProducts(prev => [...prev, product]);
-    } catch {
-      const status = data.stock !== null ? (data.stock <= 5 ? "Bajo" : "OK") : "OK";
-      setProducts(prev => [...prev, { id: Date.now(), ...data, status }]);
+    } catch (err) {
+      console.error("Error al crear producto:", err);
     }
   };
 
@@ -938,8 +858,12 @@ export function InventarioView({ user, products, setProducts }) {
               <div style={{ display: "flex", gap: 8 }}>
                 <button style={{ background: "none", border: "none", color: C.muted, cursor: "pointer", fontSize: 16, padding: 0 }}>✏️</button>
                 <button onClick={async () => {
-                  try { await ProductsAPI.delete(p.id); } catch { }
-                  setProducts(prev => prev.filter(x => x.id !== p.id));
+                  try {
+                    await ProductsAPI.delete(p.id);
+                    setProducts(prev => prev.filter(x => x.id !== p.id));
+                  } catch (err) {
+                    console.error("Error al eliminar producto:", err);
+                  }
                 }} style={{ background: "none", border: "none", color: C.muted, cursor: "pointer", fontSize: 16, padding: 0 }}>🗑</button>
               </div>
             </div>
@@ -959,33 +883,39 @@ export function GastosView({ user }) {
   const [filter, setFilter] = useState("Todos");
   const [showModal, setShowModal] = useState(false);
   const [gastos, setGastos] = useState([]);
+  const [ingresosMes, setIngresosMes] = useState(0);
 
   useEffect(() => {
     GastosAPI.list()
-      .then(data => setGastos(data))
-      .catch(() => setGastos(INITIAL_GASTOS));     // fallback demo
+      .then(data => setGastos(data.map(g => ({ ...g, color: CAT_COLORS_MAP[g.cat] || C.muted }))))
+      .catch(err => console.error("Error al cargar gastos:", err));
+    ReportsAPI.summary("Este mes")
+      .then(s => setIngresosMes(s.kpis.ventas))
+      .catch(err => console.error("Error al cargar ingresos:", err));
   }, []);
 
   const totalGastos = gastos.reduce((s, g) => s + g.amount, 0);
-  const ingresosMes = 41700;
   const gananciaNeta = ingresosMes - totalGastos;
-  const maxGasto = Math.max(...GASTOS_CATS_DIST.map(g => g.value));
-  const filtered = filter === "Todos" ? gastos : gastos.filter(g => g.cat.toLowerCase().includes(filter.toLowerCase()));
+  const catDist = Object.entries(
+    gastos.reduce((acc, g) => {
+      const cat = g.cat || "Otros";
+      acc[cat] = (acc[cat] || 0) + g.amount;
+      return acc;
+    }, {})
+  )
+    .map(([label, value]) => ({ label, value, color: CAT_COLORS_MAP[label] || C.muted }))
+    .sort((a, b) => b.value - a.value);
+  const maxGasto = Math.max(...catDist.map(g => g.value), 1);
+  const filtered = filter === "Todos" ? gastos : gastos.filter(g => (g.cat || "").toLowerCase().includes(filter.toLowerCase()));
 
   return (
     <div style={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden", background: C.bg }}>
       {showModal && <RegistrarGastoModal onClose={() => setShowModal(false)} onSave={async data => {
         try {
           const { expense } = await GastosAPI.create(data);
-          setGastos(prev => [expense, ...prev]);
-        } catch {
-          const op = OPERATORS.find(o => o.initials === data.operator) || OPERATORS[0];
-          setGastos(prev => [{
-            id: Date.now(), desc: data.desc, cat: data.cat,
-            date: new Date().toLocaleDateString("es-MX", { day: "numeric", month: "short", year: "numeric" }),
-            by: op.name, byInitials: op.initials, amount: data.amount,
-            color: CAT_COLORS_MAP[data.cat] || C.muted,
-          }, ...prev]);
+          setGastos(prev => [{ ...expense, color: CAT_COLORS_MAP[expense.cat] || C.muted }, ...prev]);
+        } catch (err) {
+          console.error("Error al registrar gasto:", err);
         }
       }} />}
       <PageHeader title="Registro de Gastos" user={user} />
@@ -996,10 +926,12 @@ export function GastosView({ user }) {
           <StatCard icon="💲" label="Ingresos mes" value={`$${ingresosMes.toLocaleString()}`} sub="ventas del mes" color={C.blue} delay={160} />
           <StatCard icon="📋" label="Ganancia neta" value={`$${gananciaNeta.toLocaleString()}`} sub="ingresos − gastos" color={C.green} delay={240} />
         </div>
-        <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 12, padding: "20px 24px", marginBottom: 20 }}>
-          <h4 style={{ margin: "0 0 16px", fontSize: 14, fontWeight: 700 }}>Distribución por categoría</h4>
-          {GASTOS_CATS_DIST.map((g, i) => <ProgressBar key={g.label} label={g.label} value={g.value} max={maxGasto} color={g.color} amount={`$${g.value.toLocaleString()} (1)`} delay={i * 100} />)}
-        </div>
+        {catDist.length > 0 && (
+          <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 12, padding: "20px 24px", marginBottom: 20 }}>
+            <h4 style={{ margin: "0 0 16px", fontSize: 14, fontWeight: 700 }}>Distribución por categoría</h4>
+            {catDist.map((g, i) => <ProgressBar key={g.label} label={g.label} value={g.value} max={maxGasto} color={g.color} amount={`$${g.value.toLocaleString()}`} delay={i * 100} />)}
+          </div>
+        )}
         <div style={{ display: "flex", gap: 8, marginBottom: 16, alignItems: "center", flexWrap: "wrap" }}>
           <div style={{ display: "flex", gap: 6, overflowX: "auto", flex: 1 }}>
             {GASTO_CATS_FILTER.map(f => (
@@ -1036,23 +968,39 @@ export function GastosView({ user }) {
 // ═══════════════════════════════════════════════════════════════
 // VIEW: REPORTES
 // ═══════════════════════════════════════════════════════════════
-const REPORT_DEUDORES = [
-  { initials: "CM", name: "Carlos Mendoza", totalDebt: 755, paid: 200, pending: 555, status: "Al Día" },
-  { initials: "LG", name: "Laura Gómez", totalDebt: 940, paid: 300, pending: 640, status: "Atrasado" },
-  { initials: "MT", name: "Miguel Torres", totalDebt: 1150, paid: 500, pending: 650, status: "Crítico" },
-  { initials: "SR", name: "Sandra Ruiz", totalDebt: 500, paid: 0, pending: 500, status: "Al Día" },
-];
+const PAY_METHOD_COLORS = { "Efectivo": C.accent, "MP / QR": C.green, "Tarjeta": C.purple };
 
 export function ReportesView({ user }) {
   const [period, setPeriod] = useState("Esta semana");
-  const kpis = [
-    { icon: "💲", label: "Ventas", value: "$41,700", sub: "+8% vs ant.", color: C.green },
-    { icon: "🎫", label: "Transacciones", value: "338", sub: "ventas", color: C.purple },
-    { icon: "📉", label: "Gastos", value: "$6,850", sub: "5 registros", color: C.danger },
-    { icon: "📈", label: "Ganancia neta", value: "$34,850", sub: "ventas − gastos", color: C.accent },
-    { icon: "👥", label: "Deuda pendiente", value: "$5,045", sub: "8 deudores", color: C.warn },
-  ];
-  const sc = { "Al Día": C.accent, "Atrasado": C.orange, "Crítico": C.danger };
+  // report.period distinto del period activo ⇒ todavía cargando ese periodo
+  const [report, setReport] = useState(null);
+
+  useEffect(() => {
+    let active = true;
+    Promise.all([ReportsAPI.summary(period), ReportsAPI.deudores()])
+      .then(([s, d]) => { if (active) setReport({ period, summary: s, deudores: d }); })
+      .catch(err => {
+        console.error("Error al cargar reportes:", err);
+        if (active) setReport({ period, summary: null, deudores: [] });
+      });
+    return () => { active = false; };
+  }, [period]);
+
+  const loading = !report || report.period !== period;
+  const summary = loading ? null : report.summary;
+  const deudoresReport = loading ? [] : report.deudores;
+
+  const kpis = summary ? [
+    { icon: "💲", label: "Ventas", value: `$${summary.kpis.ventas.toLocaleString()}`, sub: period.toLowerCase(), color: C.green },
+    { icon: "🎫", label: "Transacciones", value: `${summary.kpis.transacciones}`, sub: "ventas", color: C.purple },
+    { icon: "📉", label: "Gastos", value: `$${summary.kpis.gastos.toLocaleString()}`, sub: period.toLowerCase(), color: C.danger },
+    { icon: "📈", label: "Ganancia neta", value: `$${summary.kpis.gananciaNeta.toLocaleString()}`, sub: "ventas − gastos", color: C.accent },
+    { icon: "👥", label: "Deuda pendiente", value: `$${summary.kpis.deudaPendiente.toLocaleString()}`, sub: `${summary.kpis.deudoresCount} deudores`, color: C.warn },
+  ] : [];
+  const donutSegments = summary
+    ? summary.paymentMethods.map(m => ({ ...m, color: PAY_METHOD_COLORS[m.label] || C.muted }))
+    : [];
+  const sc = { "Al Día": C.accent, "En Seguimiento": C.warn, "Atrasado": C.orange, "Crítico": C.danger };
 
   return (
     <div style={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden", background: C.bg }}>
@@ -1063,56 +1011,67 @@ export function ReportesView({ user }) {
             <button key={p} onClick={() => setPeriod(p)} style={{ padding: "8px 20px", borderRadius: 20, border: `1px solid ${period === p ? C.accent : C.border}`, background: period === p ? `${C.accent}22` : "transparent", color: period === p ? C.accent : C.muted, fontSize: 14, fontWeight: 600, cursor: "pointer" }}>{p}</button>
           ))}
         </div>
-        <div style={{ display: "flex", gap: 12, marginBottom: 24, flexWrap: "wrap" }}>
-          {kpis.map((k, i) => (
-            <div key={k.label} style={{ flex: 1, minWidth: 140, background: C.card, border: `1px solid ${C.border}`, borderRadius: 12, padding: "16px 18px", opacity: 0, animation: `fadeUp .4s ease ${i * .07}s both` }}>
-              <div style={{ fontSize: 11, color: C.muted, marginBottom: 6 }}>{k.icon} {k.label}</div>
-              <div style={{ fontSize: 22, fontWeight: 800, color: k.color }}>{k.value}</div>
-              <div style={{ fontSize: 11, color: C.muted, marginTop: 4 }}>{k.sub}</div>
+        {loading ? (
+          <div style={{ textAlign: "center", padding: "80px 0", color: C.muted }}>
+            <div style={{ fontSize: 32, marginBottom: 12, opacity: .4 }}>📊</div>
+            <p style={{ margin: 0, fontSize: 13 }}>Cargando reportes…</p>
+          </div>
+        ) : !summary ? (
+          <div style={{ textAlign: "center", padding: "80px 0", color: C.muted }}>
+            <div style={{ fontSize: 32, marginBottom: 12, opacity: .4 }}>⚠️</div>
+            <p style={{ margin: 0, fontSize: 13 }}>No se pudieron cargar los reportes.</p>
+          </div>
+        ) : (
+          <>
+            <div style={{ display: "flex", gap: 12, marginBottom: 24, flexWrap: "wrap" }}>
+              {kpis.map((k, i) => (
+                <div key={k.label} style={{ flex: 1, minWidth: 140, background: C.card, border: `1px solid ${C.border}`, borderRadius: 12, padding: "16px 18px", opacity: 0, animation: `fadeUp .4s ease ${i * .07}s both` }}>
+                  <div style={{ fontSize: 11, color: C.muted, marginBottom: 6 }}>{k.icon} {k.label}</div>
+                  <div style={{ fontSize: 22, fontWeight: 800, color: k.color }}>{k.value}</div>
+                  <div style={{ fontSize: 11, color: C.muted, marginTop: 4 }}>{k.sub}</div>
+                </div>
+              ))}
             </div>
-          ))}
-        </div>
-        <div style={{ display: "grid", gridTemplateColumns: "2fr 1fr", gap: 16, marginBottom: 24 }}>
-          <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 12, padding: "20px 24px" }}>
-            <h4 style={{ margin: "0 0 16px", fontSize: 14, fontWeight: 700 }}>📊 Ventas — {period}</h4>
-            <BarChart data={WEEK_SALES} height={220} />
-          </div>
-          <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 12, padding: "20px 24px" }}>
-            <h4 style={{ margin: "0 0 20px", fontSize: 14, fontWeight: 700 }}>💲 Métodos de pago</h4>
-            <DonutChart segments={PAY_METHODS} size={180} thickness={30} />
-          </div>
-        </div>
-        <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 12, padding: "20px 24px", marginBottom: 24 }}>
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
-            <h4 style={{ margin: 0, fontSize: 14, fontWeight: 700 }}>📡 Bitácora de operaciones</h4>
-            <span style={{ fontSize: 12, color: C.muted }}>0 registros</span>
-          </div>
-          <div style={{ textAlign: "center", padding: "40px 0", color: C.muted }}>
-            <div style={{ fontSize: 32, marginBottom: 8, opacity: .3 }}>📡</div>
-            <p style={{ margin: 0, fontSize: 13 }}>Realiza operaciones para verlas aquí</p>
-          </div>
-        </div>
-        <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 12, overflow: "hidden" }}>
-          <div style={{ padding: "16px 20px", borderBottom: `1px solid ${C.border}`, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-            <h4 style={{ margin: 0, fontSize: 14, fontWeight: 700 }}>👥 Reporte de Deudores</h4>
-            <span style={{ fontSize: 12, color: C.muted }}>📅 Al {new Date().toLocaleDateString("es-MX")}</span>
-          </div>
-          <div style={{ display: "grid", gridTemplateColumns: "2fr 1fr 1fr 1fr 1fr", padding: "10px 20px", borderBottom: `1px solid ${C.border}`, fontSize: 11, color: C.muted, fontWeight: 700, letterSpacing: 1, textTransform: "uppercase" }}>
-            <span>Cliente</span><span>Total Deuda</span><span style={{ color: C.green }}>Pagado</span><span style={{ color: C.warn }}>Pendiente</span><span>Estado</span>
-          </div>
-          {REPORT_DEUDORES.map((d, i) => (
-            <div key={i} className="feh-fade" style={{ display: "grid", gridTemplateColumns: "2fr 1fr 1fr 1fr 1fr", padding: "12px 20px", borderBottom: `1px solid ${C.border}`, fontSize: 13, alignItems: "center", animationDelay: `${i * .06}s` }}>
-              <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                <Avatar initials={d.initials} size={30} color={sc[d.status] || C.muted} />
-                <span style={{ fontWeight: 500 }}>{d.name}</span>
+            <div style={{ display: "grid", gridTemplateColumns: "2fr 1fr", gap: 16, marginBottom: 24 }}>
+              <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 12, padding: "20px 24px" }}>
+                <h4 style={{ margin: "0 0 16px", fontSize: 14, fontWeight: 700 }}>📊 Ventas — {period}</h4>
+                <BarChart data={summary.weeklySales} height={220} />
               </div>
-              <span>${d.totalDebt.toLocaleString()}.00</span>
-              <span style={{ color: C.green }}>${d.paid.toLocaleString()}.00</span>
-              <span style={{ color: C.warn }}>${d.pending.toLocaleString()}.00</span>
-              <StatusBadge status={d.status} />
+              <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 12, padding: "20px 24px" }}>
+                <h4 style={{ margin: "0 0 20px", fontSize: 14, fontWeight: 700 }}>💲 Métodos de pago</h4>
+                {donutSegments.length > 0 ? (
+                  <DonutChart segments={donutSegments} size={180} thickness={30} />
+                ) : (
+                  <div style={{ textAlign: "center", padding: "40px 0", color: C.muted, fontSize: 13 }}>Sin ventas en este periodo</div>
+                )}
+              </div>
             </div>
-          ))}
-        </div>
+            <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 12, overflow: "hidden" }}>
+              <div style={{ padding: "16px 20px", borderBottom: `1px solid ${C.border}`, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                <h4 style={{ margin: 0, fontSize: 14, fontWeight: 700 }}>👥 Reporte de Deudores</h4>
+                <span style={{ fontSize: 12, color: C.muted }}>📅 Al {new Date().toLocaleDateString("es-MX")}</span>
+              </div>
+              <div style={{ display: "grid", gridTemplateColumns: "2fr 1fr 1fr 1fr 1fr", padding: "10px 20px", borderBottom: `1px solid ${C.border}`, fontSize: 11, color: C.muted, fontWeight: 700, letterSpacing: 1, textTransform: "uppercase" }}>
+                <span>Cliente</span><span>Total Deuda</span><span style={{ color: C.green }}>Pagado</span><span style={{ color: C.warn }}>Pendiente</span><span>Estado</span>
+              </div>
+              {deudoresReport.length === 0 && (
+                <div style={{ textAlign: "center", padding: "32px 0", color: C.muted, fontSize: 13 }}>Sin deudores registrados 🎉</div>
+              )}
+              {deudoresReport.map((d, i) => (
+                <div key={i} className="feh-fade" style={{ display: "grid", gridTemplateColumns: "2fr 1fr 1fr 1fr 1fr", padding: "12px 20px", borderBottom: `1px solid ${C.border}`, fontSize: 13, alignItems: "center", animationDelay: `${i * .06}s` }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                    <Avatar initials={d.initials} size={30} color={sc[d.status] || C.muted} />
+                    <span style={{ fontWeight: 500 }}>{d.name}</span>
+                  </div>
+                  <span>${d.totalDebt.toLocaleString()}.00</span>
+                  <span style={{ color: C.green }}>${d.paid.toLocaleString()}.00</span>
+                  <span style={{ color: C.warn }}>${d.pending.toLocaleString()}.00</span>
+                  <StatusBadge status={d.status} />
+                </div>
+              ))}
+            </div>
+          </>
+        )}
       </ScrollArea>
     </div>
   );
