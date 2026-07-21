@@ -655,50 +655,90 @@ table.data-card th, table.data-card td,
   padding: 0;
 }
 
-/* ═══════════════════════════════════════════════════════════════
 
+/* ═══════════════════════════════════════════════════════════════
    Responsive — tablet / móvil
    ═══════════════════════════════════════════════════════════════ */
+
+/* ─── botón hamburguesa + overlay del menú lateral (ocultos en desktop) ─── */
+.pos__menu-toggle {
+  display: none;
+  position: fixed;
+  top: 12px;
+  left: 12px;
+  z-index: 210;
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  background: var(--sidebar);
+  border: 1px solid var(--border);
+  color: var(--text);
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  cursor: pointer;
+}
+.pos__nav-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, .55);
+  border: none;
+  padding: 0;
+  margin: 0;
+  cursor: pointer;
+  z-index: 190;
+}
+.sidebar__close { display: none; }
+
+/* ─── kebab de acciones del ticket (oculto en desktop) ─────────── */
+.ticket__menu-btn {
+  display: none;
+  background: none;
+  border: none;
+  color: var(--muted);
+  font-size: 20px;
+  line-height: 1;
+  padding: 2px 6px;
+  cursor: pointer;
+  align-self: flex-start;
+}
+
 @media (max-width: 900px) {
-  /* sidebar pasa de columna lateral a barra superior con scroll horizontal */
-  .pos { flex-direction: column; }
+  /* el menú principal deja de ir siempre visible y se oculta tras el botón ☰ */
+  .pos { flex-direction: column; height: auto; min-height: 100dvh; overflow: visible; }
+  .pos__menu-toggle { display: flex; }
+  .pos__nav-overlay { display: block; }
+  .pos__main { overflow: visible; padding-top: 56px; min-width: 0; }
+
   .sidebar {
-    width: 100%;
-    min-width: 0;
+    position: fixed;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    width: 240px;
+    min-width: 240px;
     height: auto;
-    flex-direction: row;
-    align-items: center;
-    padding: 8px 12px;
-    gap: 14px;
-    border-right: none;
-    border-bottom: 1px solid var(--border);
-    overflow-x: auto;
-    overflow-y: hidden;
-    -webkit-overflow-scrolling: touch;
-    flex-shrink: 0;
+    transform: translateX(-100%);
+    transition: transform .25s ease;
+    z-index: 200;
+    box-shadow: 8px 0 32px rgba(0, 0, 0, .5);
+    overflow-y: auto;
   }
-  .sidebar__brand, .sidebar__user {
-    padding: 0;
-    margin: 0;
-    border-bottom: none;
-    flex-shrink: 0;
+  .sidebar--open { transform: translateX(0); }
+  .sidebar__brand { position: relative; }
+  .sidebar__close {
+    display: block;
+    margin-left: auto;
+    background: none;
+    border: none;
+    color: var(--muted);
+    font-size: 18px;
+    cursor: pointer;
+    padding: 4px;
   }
-  .sidebar__spacer { display: none; }
-  .nav { flex-direction: row; flex-shrink: 0; }
-  .nav-item {
-    flex-direction: column;
-    gap: 2px;
-    padding: 6px 10px;
-    margin: 0 2px;
-    border-left: none;
-    border-bottom: 3px solid transparent;
-    font-size: 11px;
-    white-space: nowrap;
-  }
-  .nav-item--active { border-left: none; border-bottom-color: var(--accent); border-radius: 8px 8px 0 0; }
-  .sidebar__alert { margin: 0; flex-shrink: 0; white-space: nowrap; }
-  .sidebar__foot { padding: 0; margin: 0; display: flex; gap: 6px; flex-shrink: 0; }
-  .sidebar__version { display: none; }
+  .nav { flex-direction: column; }
+  .nav-item { margin: 0 8px; white-space: normal; }
 
   /* ventas: productos y carrito se apilan en vez de ir lado a lado */
   .pos-body { flex-direction: column; overflow-y: auto; }
@@ -714,11 +754,16 @@ table.data-card th, table.data-card td,
   .store__main { padding: 16px; }
   .store-grid { grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); }
 
-  .scroll-area { padding: 14px 16px; }
+  .scroll-area { padding: 14px 16px; overflow-y: visible; }
   .topbar { padding: 12px 16px; flex-wrap: wrap; gap: 8px; }
+  .topbar__right { flex-wrap: wrap; gap: 8px; }
   .toolbar-row, .toolbar-row--wrap, .gasto-toolbar { flex-wrap: wrap; }
 
+  /* tickets: una columna y menú de acciones colapsable */
   .tickets-grid { grid-template-columns: 1fr; }
+  .ticket__menu-btn { display: block; }
+  .ticket__actions { display: none; flex-direction: column; }
+  .ticket__actions--open { display: flex; }
 
   /* tablas: se mantiene la estructura semántica, scroll horizontal en vez de comprimir columnas */
   .data-card { overflow-x: auto; }
@@ -727,6 +772,10 @@ table.data-card th, table.data-card td,
 
   .report-grid { grid-template-columns: 1fr; }
   .donut { gap: 16px; }
+
+  .debt-total { flex-wrap: wrap; gap: 12px; }
+  .debt-total__amount, .debt-total__sub--right { text-align: left; }
+  .data-card__title-row { flex-wrap: wrap; gap: 6px; }
 
   .modal-overlay { padding: 12px; }
   .modal__head, .modal__body { padding: 16px; }
@@ -741,82 +790,4 @@ table.data-card th, table.data-card td,
   .cart__actions { flex-wrap: wrap; }
   .debt-card__row { flex-wrap: wrap; }
   .debt-card__amount { text-align: left; }
-=======
-   Responsive
-   ═══════════════════════════════════════════════════════════════ */
-
-/* ─── tablet: el shell POS pasa de fila a columna ──────────────── */
-@media (max-width: 960px) {
-  .pos { flex-direction: column; height: auto; min-height: 100vh; overflow: visible; }
-
-  .sidebar {
-    width: 100%;
-    min-width: 0;
-    flex-direction: row;
-    flex-wrap: wrap;
-    align-items: center;
-    gap: 8px 16px;
-    padding: 10px 16px;
-  }
-  .sidebar__brand, .sidebar__user {
-    border-bottom: none;
-    margin-bottom: 0;
-    padding: 0;
-  }
-  .sidebar__spacer { display: none; }
-  .nav {
-    order: 3;
-    flex: 1 1 100%;
-    flex-direction: row;
-    overflow-x: auto;
-    gap: 2px;
-  }
-  .nav-item { margin: 0; white-space: nowrap; border-left: none; }
-  .nav-item--active { border-left-color: transparent; }
-  .sidebar__alert { order: 4; flex: 1 1 100%; margin: 0; }
-  .sidebar__foot { order: 2; display: flex; gap: 8px; padding: 0; margin: 0; }
-  .sidebar__version { display: none; }
-
-  .pos__main { overflow: visible; }
-  .view { overflow: visible; }
-  .scroll-area { overflow-y: visible; }
-
-  .report-grid { grid-template-columns: 1fr; }
-}
-
-/* ─── móvil: venta y carrito apilados, tablas con scroll horizontal ─ */
-@media (max-width: 700px) {
-  .pos-body { flex-direction: column; overflow: visible; }
-  .cart {
-    width: 100%;
-    min-width: 0;
-    border-left: none;
-    border-top: 1px solid var(--border);
-  }
-
-  .topbar { flex-wrap: wrap; gap: 8px; padding: 12px 16px; }
-  .topbar__right { flex-wrap: wrap; gap: 8px; }
-
-  .pos-products__toolbar { padding: 12px 16px 0; }
-  .products-grid { padding: 12px 16px; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); }
-
-  .store__header { flex-wrap: wrap; gap: 12px; padding: 14px 16px; }
-  .store__tabs { order: 3; width: 100%; overflow-x: auto; }
-  .store__actions { gap: 10px; }
-  .store__main { padding: 16px; }
-  .store-grid { grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); }
-
-  .data-card { overflow-x: auto; }
-  .inv-head, .inv-row { min-width: 640px; }
-  .report-head, .report-row { min-width: 560px; }
-
-  .modal-overlay { padding: 12px; }
-  .modal__body { padding: 16px; }
-
-  .mesa-grid { grid-template-columns: repeat(2, 1fr); }
-
-  .debt-total { flex-wrap: wrap; gap: 12px; }
-  .debt-total__amount, .debt-total__sub--right { text-align: left; }
-  .data-card__title-row { flex-wrap: wrap; gap: 6px; }
-  .toolbar-row { flex-wrap: wrap; }
 }
