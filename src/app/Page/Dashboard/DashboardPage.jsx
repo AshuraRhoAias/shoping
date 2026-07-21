@@ -23,13 +23,14 @@ const NAV_BASE = [
 const catIcon = (c) => c === "Todos" ? "🏷️" : c === "Bebidas" ? "🥤" : c === "Snacks" ? "🍿" : c === "Suplementos" ? "💊" : c === "Servicios" ? "🏋️" : c === "Ropa" ? "👕" : c === "Accesorios" ? "📦" : "🏷️";
 
 // ─── Sidebar ──────────────────────────────────────────────────────────────────
-function Sidebar({ user, activeNav, onNav, onLogout, ticketsCount, lowStockCount }) {
+function Sidebar({ user, activeNav, onNav, onLogout, ticketsCount, lowStockCount, open, onClose }) {
     const nav = NAV_BASE.map((n) => ({ ...n, badge: n.id === "tickets" && ticketsCount > 0 ? ticketsCount : null }));
     return (
-        <aside className="sidebar">
+        <aside className={`sidebar${open ? " sidebar--open" : ""}`}>
             <header className="sidebar__brand">
                 <span className="sidebar__brand-emoji">🏋️</span>
                 <span className="sidebar__brand-name">Fit &amp; Ecoree</span>
+                <button className="sidebar__close" aria-label="Cerrar menú" onClick={onClose}>✕</button>
             </header>
             <section className="sidebar__user">
                 <Avatar initials={user.name[0]} />
@@ -41,7 +42,7 @@ function Sidebar({ user, activeNav, onNav, onLogout, ticketsCount, lowStockCount
             </section>
             <nav className="nav">
                 {nav.map(n => (
-                    <button key={n.id} className={`nav-item${activeNav === n.id ? " nav-item--active" : ""}`} onClick={() => onNav(n.id)}>
+                    <button key={n.id} className={`nav-item${activeNav === n.id ? " nav-item--active" : ""}`} onClick={() => { onNav(n.id); onClose?.(); }}>
                         <span>{n.icon}</span><span>{n.label}</span>
                         {n.badge && <span className="nav-item__badge">{n.badge}</span>}
                     </button>
@@ -327,6 +328,7 @@ function POSView({ user, products, setProducts, onLogout }) {
     const [activeNav, setActiveNav] = useState("ventas");
     const [cart, setCart] = useState([]);
     const [tickets, setTickets] = useState([]);
+    const [menuOpen, setMenuOpen] = useState(false);
 
     useEffect(() => {
         TicketsAPI.list()
@@ -355,7 +357,9 @@ function POSView({ user, products, setProducts, onLogout }) {
 
     return (
         <div className="pos">
-            <Sidebar user={user} activeNav={activeNav} onNav={setActiveNav} onLogout={onLogout} ticketsCount={tickets.length} lowStockCount={lowStockCount} />
+            <button className="pos__menu-toggle" aria-label="Abrir menú" onClick={() => setMenuOpen(true)}>☰</button>
+            {menuOpen && <button className="pos__nav-overlay" aria-label="Cerrar menú" onClick={() => setMenuOpen(false)} />}
+            <Sidebar user={user} activeNav={activeNav} onNav={setActiveNav} onLogout={onLogout} ticketsCount={tickets.length} lowStockCount={lowStockCount} open={menuOpen} onClose={() => setMenuOpen(false)} />
             <main className="pos__main">
                 {renderView()}
             </main>

@@ -654,6 +654,7 @@ export function DeudoresView({ user }) {
 // ═══════════════════════════════════════════════════════════════
 export function TicketsView({ user, tickets, setTickets, onRecover }) {
   const [cobrarTicket, setCobrarTicket] = useState(null);
+  const [openMenu, setOpenMenu] = useState(null);
 
   const active = tickets.length;
   const total = tickets.reduce((s, t) => s + t.total, 0);
@@ -701,6 +702,8 @@ export function TicketsView({ user, tickets, setTickets, onRecover }) {
                       <p className={`ticket__total${t.urgent ? " ticket__total--urgent" : ""}`}>${t.total}.00</p>
                       <p className="ticket__count">{t.items.length} productos</p>
                     </div>
+                    <button className="ticket__menu-btn" aria-label="Más acciones" aria-expanded={openMenu === t.id}
+                      onClick={() => setOpenMenu(openMenu === t.id ? null : t.id)}>⋮</button>
                   </header>
                   <ul className="ticket__lines">
                     {t.items.map((item, j) => (
@@ -712,7 +715,7 @@ export function TicketsView({ user, tickets, setTickets, onRecover }) {
                     <Avatar initials={t.savedBy[0]} size={20} color={COLORS.blue} /> Guardado por <strong>{t.savedBy}</strong>
                     {t.client && <> &nbsp;👤 <span>{t.client}</span></>}
                   </p>
-                  <menu className="ticket__actions">
+                  <menu className={`ticket__actions${openMenu === t.id ? " ticket__actions--open" : ""}`}>
                     <li><button className="icon-btn-danger" onClick={async () => {
                       try {
                         await TicketsAPI.delete(t.id);
