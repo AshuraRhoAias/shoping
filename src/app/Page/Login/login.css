@@ -296,6 +296,12 @@
   box-shadow: 0 20px 60px rgba(0, 0, 0, .55);
 }
 
+@media (max-width: 420px) {
+  .login-card { padding: 22px 18px; }
+  .login-stepper { margin-bottom: 20px; }
+  .login-step-line { width: 36px; }
+}
+
 .login-label { font-size: 13px; color: #8b949e; margin-bottom: 6px; display: block; }
 .login-input-wrap { position: relative; margin-bottom: 16px; }
 .login-input-icon { position: absolute; left: 14px; top: 50%; transform: translateY(-50%); color: #8b949e; font-size: 15px; pointer-events: none; }
