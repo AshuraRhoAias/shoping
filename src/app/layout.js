@@ -5,11 +5,6 @@ export const metadata = {
   description: "Panel de administración",
 };
 
-export const viewport = {
-  width: "device-width",
-  initialScale: 1,
-};
-
 export default function RootLayout({ children }) {
   return (
     <html lang="es">
