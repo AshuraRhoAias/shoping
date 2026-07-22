@@ -33,11 +33,12 @@ export function middleware(request) {
     "Content-Security-Policy",
     [
       "default-src 'self'",
-      "script-src  'self' 'unsafe-inline' 'unsafe-eval'",
-      "style-src   'self' 'unsafe-inline' https://fonts.googleapis.com",
+      "script-src  'self' 'unsafe-inline' 'unsafe-eval' https://vercel.live",
+      "style-src   'self' 'unsafe-inline' https://fonts.googleapis.com https://vercel.live",
       "font-src    'self' https://fonts.gstatic.com",
-      "img-src     'self' data: blob:",
-      `connect-src 'self'${SUPABASE_URL ? ` ${SUPABASE_URL}` : ""}`,
+      "img-src     'self' data: blob: https://vercel.live https://vercel.com",
+      `connect-src 'self' https://vercel.live wss://ws-us3.pusher.com${SUPABASE_URL ? ` ${SUPABASE_URL}` : ""}`,
+      "frame-src   https://vercel.live",
       "frame-ancestors 'none'",
     ].join("; ")
   );
