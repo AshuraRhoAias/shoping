@@ -457,7 +457,7 @@
 .low-stock__tag { background: color-mix(in srgb, var(--warn) 13%, transparent); color: var(--warn); border-radius: 6px; padding: 2px 10px; font-size: 12px; font-weight: 600; }
 
 .data-card { background: var(--card); border: 1px solid var(--border); border-radius: 12px; overflow: hidden; }
-.inv-head, .inv-row { display: grid; grid-template-columns: 2fr 1fr 1fr 80px 80px 100px; padding: 10px 20px; align-items: center; }
+.inv-head, .inv-row { display: grid; grid-template-columns: 2fr 1fr 1fr 80px 80px 100px; gap: 4px 14px; padding: 10px 20px; align-items: center; }
 .inv-head { border-bottom: 1px solid var(--border); font-size: 11px; color: var(--muted); font-weight: 700; letter-spacing: 1px; text-transform: uppercase; }
 .inv-row { border-bottom: 1px solid var(--border); border-left: 3px solid var(--c, var(--border)); font-size: 13px; }
 .inv-row:hover { background: var(--card-hover); }
@@ -511,7 +511,7 @@
 .data-card__title-row { padding: 16px 20px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; }
 .data-card__title { margin: 0; font-size: 14px; font-weight: 700; }
 .data-card__date { font-size: 12px; color: var(--muted); }
-.report-head, .report-row { display: grid; grid-template-columns: 2fr 1fr 1fr 1fr 1fr; padding: 10px 20px; align-items: center; }
+.report-head, .report-row { display: grid; grid-template-columns: 2fr 1fr 1fr 1fr 1fr; gap: 4px 14px; padding: 10px 20px; align-items: center; }
 .report-head { border-bottom: 1px solid var(--border); font-size: 11px; color: var(--muted); font-weight: 700; letter-spacing: 1px; text-transform: uppercase; }
 .report-head__paid { color: var(--green); }
 .report-head__pending { color: var(--warn); }
@@ -767,8 +767,8 @@ table.data-card th, table.data-card td,
 
   /* tablas: se mantiene la estructura semántica, scroll horizontal en vez de comprimir columnas */
   .data-card { overflow-x: auto; }
-  .inv-head, .inv-row { min-width: 560px; }
-  .report-head, .report-row { min-width: 520px; }
+  .inv-head, .inv-row { min-width: 620px; }
+  .report-head, .report-row { min-width: 580px; }
 
   .report-grid { grid-template-columns: 1fr; }
   .donut { gap: 16px; }
