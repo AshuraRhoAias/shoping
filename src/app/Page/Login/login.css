@@ -1,8 +1,11 @@
 /* ─── Fondo animado ──────────────────────────────────────────────────────── */
-.login-page {
-  position: relative;
+.login-bg {
+  position: fixed;
+  inset: 0;
   overflow: hidden;
   isolation: isolate;
+  z-index: -1;
+  pointer-events: none;
 }
 
 .login-blob {
@@ -10,7 +13,6 @@
   border-radius: 50%;
   filter: blur(70px);
   opacity: 0.45;
-  z-index: -1;
   will-change: transform;
 }
 
