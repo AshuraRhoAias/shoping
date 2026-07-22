@@ -27,11 +27,11 @@ function Spinner() {
 // ─── Fondo animado ────────────────────────────────────────────────────────────
 function AuroraBackground() {
     return (
-        <>
+        <div className="login-bg" aria-hidden="true">
             <span className="login-blob login-blob--a" />
             <span className="login-blob login-blob--b" />
             <span className="login-blob login-blob--c" />
-        </>
+        </div>
     );
 }
 
@@ -292,37 +292,39 @@ export default function LoginPage({ onLoginSuccess }) {
     };
 
     return (
-        <main className="login-page">
+        <>
             <AuroraBackground />
-            <span className="login-logo">🏋️</span>
-            <h1 className="login-title">Fit &amp; Ecoree House</h1>
-            <p className="login-subtitle">
-                {mode === "login" ? "Sistema de gestión · Inicia sesión" : "Crear cuenta de cliente · Fit & Ecoree House"}
-            </p>
-            <section className="login-card">
-                {mode === "register" && <Stepper step={regStep} />}
+            <main className="login-page">
+                <span className="login-logo">🏋️</span>
+                <h1 className="login-title">Fit &amp; Ecoree House</h1>
+                <p className="login-subtitle">
+                    {mode === "login" ? "Sistema de gestión · Inicia sesión" : "Crear cuenta de cliente · Fit & Ecoree House"}
+                </p>
+                <section className="login-card">
+                    {mode === "register" && <Stepper step={regStep} />}
 
-                {mode === "login" && (
-                    <section key="login" className="login-step">
-                        <LoginScreen onLogin={handleLogin} onRegister={() => { setMode("register"); setRegStep(1); }} />
-                    </section>
-                )}
-                {mode === "register" && regStep === 1 && (
-                    <section key="reg-1" className="login-step">
-                        <Step1 onNext={handleStep1} onLogin={() => setMode("login")} />
-                    </section>
-                )}
-                {mode === "register" && regStep === 2 && (
-                    <section key="reg-2" className="login-step">
-                        <Step2 email={regData.email} onNext={handleStep2} onBack={() => setRegStep(1)} />
-                    </section>
-                )}
-                {mode === "register" && regStep === 3 && (
-                    <section key="reg-3" className="login-step">
-                        <Step3 name={regData.name} onGoToStore={handleGoStore} loading={goingToStore} />
-                    </section>
-                )}
-            </section>
-        </main>
+                    {mode === "login" && (
+                        <section key="login" className="login-step">
+                            <LoginScreen onLogin={handleLogin} onRegister={() => { setMode("register"); setRegStep(1); }} />
+                        </section>
+                    )}
+                    {mode === "register" && regStep === 1 && (
+                        <section key="reg-1" className="login-step">
+                            <Step1 onNext={handleStep1} onLogin={() => setMode("login")} />
+                        </section>
+                    )}
+                    {mode === "register" && regStep === 2 && (
+                        <section key="reg-2" className="login-step">
+                            <Step2 email={regData.email} onNext={handleStep2} onBack={() => setRegStep(1)} />
+                        </section>
+                    )}
+                    {mode === "register" && regStep === 3 && (
+                        <section key="reg-3" className="login-step">
+                            <Step3 name={regData.name} onGoToStore={handleGoStore} loading={goingToStore} />
+                        </section>
+                    )}
+                </section>
+            </main>
+        </>
     );
 }
